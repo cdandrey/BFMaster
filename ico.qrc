@@ -1,0 +1,34 @@
+<RCC>
+    <qresource prefix="/">
+        <file>ico/wd_hint.png</file>
+        <file>ico/wd_hint_d.png</file>
+        <file>ico/bf_view.png</file>
+        <file>ico/bf_viewdis.png</file>
+        <file>ico/bf_viewgraf.png</file>
+        <file>ico/bf_viewvar.png</file>
+        <file>ico/bf_viewdissort.png</file>
+        <file>ico/bf_viewmatrix.png</file>
+        <file>ico/bf_viewvarsort.png</file>
+        <file>ico/bf_viewsat.png</file>
+        <file>ico/bf_viewsat_add.png</file>
+        <file>ico/bf_viewdimacs.png</file>
+        <file>ico/bfgen_del.png</file>
+        <file>ico/bfgen_gen.png</file>
+        <file>ico/bfgen_name_refresh.png</file>
+        <file>ico/bfgen_regen.png</file>
+        <file>ico/bfgen_stop.png</file>
+        <file>ico/ctrl_calc.png</file>
+        <file>ico/ctrl_edit.png</file>
+        <file>ico/ctrl_rand.png</file>
+        <file>ico/ctrl_run.png</file>
+        <file>ico/ctrl_runlog.png</file>
+        <file>ico/ctrl_stop.png</file>
+        <file>ico/ctrl_stoplog.png</file>
+        <file>ico/ctrl_test.png</file>
+        <file>ico/lstbf_item.png</file>
+        <file>ico/main_open.png</file>
+        <file>ico/main_print.png</file>
+        <file>ico/main_save.png</file>
+        <file>ico/main_save_as.png</file>
+    </qresource>
+</RCC>
