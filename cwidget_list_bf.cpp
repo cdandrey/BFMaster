@@ -18,7 +18,11 @@ CWidgetListBF::CWidgetListBF(QWidget *parent)
 
     m_header->setStyleSheet("QToolBar {background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #999, stop:1.0 #555);"
                                       "border: 1px solid #000;}"
-                            "QLabel   {color: white; font-size: 12px;}");
+                            "QLabel   {color: white; font-size: 12px;}"
+                            "QToolButton:hover {"
+                            "border: 0px;"
+                            "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #bbb, stop:1.0 #777);}"
+                            );
 
     m_header->insertStretch(m_header->actHint());
 

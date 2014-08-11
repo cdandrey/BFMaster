@@ -18,13 +18,33 @@ CWidgetBFView::CWidgetBFView(QWidget *parent) :
     m_header = new CToolBarHeader();
 
     m_combo = new QComboBox();
-    m_combo->setFixedHeight(m_header->minimumHeight());
+    m_combo->setFixedHeight(m_header->minimumHeight() - 2);
     m_combo->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Preferred);
-    m_combo->setStyleSheet("QComboBox {background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #999, stop:1.0 #555);"
-                        " border-radius: 3px;"
-                        "color: #fff;}");
-                       /*"QComboBox::drop-down {border: 0px;color: #fff;}"
-                       "QComboBox::down-arrow {color: #fff;}");*/
+    m_combo->setStyleSheet("QComboBox {"
+                                "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #999, stop:1.0 #555);"
+                                "border-radius: 0px;"
+                                "color: #fff;}"
+                          "QComboBox:hover {"
+                                "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #bbb, stop:1.0 #777);"
+                                "border-radius: 0px;"
+                                "color: #fff;"
+                                "}"
+                          "QComboBox::drop-down {"
+                                "subcontrol-origin: padding;"
+                                "subcontrol-position: top right;"
+                                "width: 12px; "
+                                "border-left-width: 0px;"
+                                "border-left-color: #ccc;"
+                                "border-left-style: solid;"
+                                "border-top-right-radius: 3px;"
+                                "border-bottom-right-radius: 3px;"
+                                "}"
+                           "QComboBox::down-arrow {"
+                                "image: url(:/ico/arrow_combo_box.png);"
+                                "width: 12;"
+                                "height: 12;"
+                                "}"
+    );
 
     m_actView = new QAction(QIcon(":/ico/bf_view.png"),CBFView::descriptView,this);
     m_actViewDIMACS = new QAction(QIcon(":/ico/bf_viewdimacs.png"),CBFView::descriptViewDIMACS,this);

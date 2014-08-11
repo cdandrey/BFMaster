@@ -30,5 +30,6 @@
         <file>ico/main_print.png</file>
         <file>ico/main_save.png</file>
         <file>ico/main_save_as.png</file>
+        <file>ico/arrow_combo_box.png</file>
     </qresource>
 </RCC>

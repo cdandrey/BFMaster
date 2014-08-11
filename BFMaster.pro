@@ -24,7 +24,8 @@ SOURCES += main.cpp\
     cwidget_bf_view.cpp \
     cwidget_control.cpp \
     ctoolbar_header.cpp \
-    cwidget_tree_sat.cpp
+    cwidget_tree_sat.cpp \
+    #ctest_algorithms.cpp
 
 HEADERS  += \
     cboolfunction.h \
@@ -39,7 +40,8 @@ HEADERS  += \
     cwidget_bf_view.h \
     cwidget_control.h \
     ctoolbar_header.h \
-    cwidget_tree_sat.h
+    cwidget_tree_sat.h \
+    #ctest_algorithms.h
 
 RESOURCES += \
     ico.qrc
