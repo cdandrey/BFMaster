@@ -1,5 +1,5 @@
 #include "csat.h"
-#include "cbf_view.h"
+#include "cboolfunction.h"
 
 #include <QTime>
 #include <QElapsedTimer>
@@ -63,8 +63,8 @@ TStr CSatExhaustive::progress() const
 
     TStr str = tr("текущая ветка выполнения: ");
 
-    foreach(int val,m_branch)
-        str += TStr("%1.").arg(m_bfv->boolFunction()->varDIMACS(val));
+//    foreach(int val,m_branch)
+//        str += TStr("%1.").arg(m_bfv->boolFunction()->varDIMACS(val));
 
     return str;
 }
@@ -73,28 +73,30 @@ TStr CSatExhaustive::progress() const
 
 TStr CSatExhaustive::progressFinished() const
 {
-    if (m_stopped) {
+//    if (m_stopped) {
 
-        return tr("\nВыполнимость функции %1 - не определена. Процесс был остановлен.\n")
-                .arg(m_bfv->boolFunctionName());
+//        return tr("\nВыполнимость функции %1 - не определена. Процесс был остановлен.\n")
+//                .arg(m_bfv->boolFunctionName());
 
-    } else {
+//    } else {
 
-        return tr("\n%1 завершил работу.\n%2 - %3.\n")
-                .arg(description())
-                .arg(m_bfv->boolFunctionName())
-                .arg(m_satdata.state);
-    }
+//        return tr("\n%1 завершил работу.\n%2 - %3.\n")
+//                .arg(description())
+//                .arg(m_bfv->boolFunctionName())
+//                .arg(m_satdata.state);
+//    }
+    return "";
 }
 //-----------------------------------------------------------------------
 
 
 TStr CSatExhaustive::progressDescription() const
 {
-    return TStr("%1 %2 : %3")
-            .arg(tr("Определяется выполнимость "))
-            .arg(m_bfv->boolFunctionName())
-            .arg(description());
+//    return TStr("%1 %2 : %3")
+//            .arg(tr("Определяется выполнимость "))
+//            .arg(m_bfv->boolFunctionName())
+//            .arg(description());
+    return "";
 }
 //-----------------------------------------------------------------------
 
@@ -104,7 +106,7 @@ void CSatExhaustive::run()
     QElapsedTimer time;
     time.start();
 
-    determine(*m_bfv->boolFunction(),TLst(),m_bfv->boolFunction()->numDis());
+    //determine(*m_bfv->boolFunction(),TLst(),m_bfv->boolFunction()->numDis());
 
     if (m_stopped) {
         emit terminated();
@@ -113,7 +115,7 @@ void CSatExhaustive::run()
 
     m_satdata.time = time.nsecsElapsed();
 
-    m_bfv->boolFunction()->addSatdata(name(),new TSatData(m_satdata));
+    //m_bfv->boolFunction()->addSatdata(name(),new TSatData(m_satdata));
     emit successful(m_bfv);
 }
 //-----------------------------------------------------------------------
@@ -193,28 +195,31 @@ TStr CSatRandomClauses::progress() const
 
 TStr CSatRandomClauses::progressFinished() const
 {
-    if (m_stopped) {
+//    if (m_stopped) {
 
-        return tr("\nВыполнимость функции %1 - не определена. Процесс был остановлен.\n")
-                .arg(m_bfv->boolFunctionName());
+//        return tr("\nВыполнимость функции %1 - не определена. Процесс был остановлен.\n")
+//                .arg(m_bfv->boolFunctionName());
 
-    } else {
+//    } else {
 
-        return tr("\n%1 завершил работу.\n%2 - %3.\n")
-                .arg(description())
-                .arg(m_bfv->boolFunctionName())
-                .arg(m_satdata.state);
-    }
+//        return tr("\n%1 завершил работу.\n%2 - %3.\n")
+//                .arg(description())
+//                .arg(m_bfv->boolFunctionName())
+//                .arg(m_satdata.state);
+//    }
+    return "";
 }
 //-----------------------------------------------------------------------
 
 
 TStr CSatRandomClauses::progressDescription() const
 {
-    return TStr("%1 %2 : %3")
-            .arg(tr("Определяется выполнимость "))
-            .arg(m_bfv->boolFunctionName())
-            .arg(description());
+//    return TStr("%1 %2 : %3")
+//            .arg(tr("Определяется выполнимость "))
+//            .arg(m_bfv->boolFunctionName())
+//            .arg(description());
+
+    return "";
 }
 //-----------------------------------------------------------------------
 
@@ -226,9 +231,9 @@ void CSatRandomClauses::run()
     QElapsedTimer time;
     time.start();
 
-    int iDis = qrand() % m_bfv->boolFunction()->numDis();
+    //int iDis = qrand() % m_bfv->boolFunction()->numDis();
 
-    determine(*m_bfv->boolFunction(),TLst(),iDis,m_bfv->boolFunction()->numDis());
+    //determine(*m_bfv->boolFunction(),TLst(),iDis,m_bfv->boolFunction()->numDis());
 
     if (m_stopped) {
         emit terminated();
@@ -237,7 +242,7 @@ void CSatRandomClauses::run()
 
     m_satdata.time = time.nsecsElapsed();
 
-    m_bfv->boolFunction()->addSatdata(name(),new TSatData(m_satdata));
+    //m_bfv->boolFunction()->addSatdata(name(),new TSatData(m_satdata));
     emit successful(m_bfv);
 }
 //-----------------------------------------------------------------------
@@ -331,51 +336,51 @@ TStr CSatMinimumClauses::progress() const
 
 TStr CSatMinimumClauses::progressFinished() const
 {
-    if (m_stopped) {
+//    if (m_stopped) {
 
-        return tr("\nВыполнимость функции %1 - не определена. Процесс был остановлен.\n")
-                .arg(m_bfv->boolFunctionName());
+//        return tr("\nВыполнимость функции %1 - не определена. Процесс был остановлен.\n")
+//                .arg(m_bfv->boolFunctionName());
 
-    } else {
+//    } else {
 
-        return tr("\n%1 завершил работу.\n%2 - %3.\n")
-                .arg(description())
-                .arg(m_bfv->boolFunctionName())
-                .arg(m_satdata.state);
-    }
+//        return tr("\n%1 завершил работу.\n%2 - %3.\n")
+//                .arg(description())
+//                .arg(m_bfv->boolFunctionName())
+//                .arg(m_satdata.state);
+//    }
 }
 //-----------------------------------------------------------------------
 
 
 TStr CSatMinimumClauses::progressDescription() const
 {
-    return TStr("%1 %2 : %3")
-            .arg(tr("Определяется выполнимость "))
-            .arg(m_bfv->boolFunctionName())
-            .arg(description());
+//    return TStr("%1 %2 : %3")
+//            .arg(tr("Определяется выполнимость "))
+//            .arg(m_bfv->boolFunctionName())
+//            .arg(description());
 }
 //-----------------------------------------------------------------------
 
 
 void CSatMinimumClauses::run()
 {
-    QElapsedTimer time;
-    time.start();
+//    QElapsedTimer time;
+//    time.start();
 
-    int iDis = minimum(m_bfv->boolFunction()->dis(),
-                       m_bfv->boolFunction()->var());
+//    int iDis = minimum(m_bfv->boolFunction()->dis(),
+//                       m_bfv->boolFunction()->var());
 
-    determine(*m_bfv->boolFunction(),TLst(),iDis,m_bfv->boolFunction()->numDis());
+//    determine(*m_bfv->boolFunction(),TLst(),iDis,m_bfv->boolFunction()->numDis());
 
-    if (m_stopped) {
-        emit terminated();
-        return;
-    }
+//    if (m_stopped) {
+//        emit terminated();
+//        return;
+//    }
 
-    m_satdata.time = time.nsecsElapsed();
+//    m_satdata.time = time.nsecsElapsed();
 
-    m_bfv->boolFunction()->addSatdata(name(),new TSatData(m_satdata));
-    emit successful(m_bfv);
+//    m_bfv->boolFunction()->addSatdata(name(),new TSatData(m_satdata));
+//    emit successful(m_bfv);
 }
 //-----------------------------------------------------------------------
 

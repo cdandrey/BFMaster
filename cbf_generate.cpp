@@ -1,6 +1,20 @@
 #include <QTime>
 #include "cbf_generate.h"
 #include "cbf_view.h"
+#include "ccombinasion.h"
+
+
+CBFGenerate::CBFGenerate(CBFView *bfv, QObject *parent) :
+    QThread(parent),
+    m_bfv(bfv),
+    m_stopped(false),
+    m_createDis(0),
+    m_numDisMax(0),
+    m_combinations(0),
+    m_createCombinations(0)
+{
+}
+//-----------------------------------------------------------------------
 
 
 TStr CBFGenerate::progress() const
@@ -57,194 +71,199 @@ TStr CBFGenerate::progressDescription() const
 
 void CBFGenerate::run()
 {
-    qsrand(QTime::currentTime().msec());
+    m_bfv->boolFunction()->generate();
 
-    int numX = m_bfv->boolFunction()->numX();
-    int numZ = m_bfv->boolFunction()->numZ();
-    m_numDisMax = m_bfv->boolFunction()->numDisMax();
-    int lenDisMin = m_bfv->boolFunction()->lenDisMin();
-    int lenDisMax = m_bfv->boolFunction()->lenDisMax();
+//    qsrand(QTime::currentTime().msec());
 
-    TLLst dis;
-    TLLst cnf;
+//    int numX = m_bfv->boolFunction()->numX();
+//    int numZ = m_bfv->boolFunction()->numZ();
+//    m_numDisMax = m_bfv->boolFunction()->numDisMax();
+//    int lenDisMin = m_bfv->boolFunction()->lenDisMin();
+//    int lenDisMax = m_bfv->boolFunction()->lenDisMax();
 
-    int n = numX * 2;
+//    TLLst dis;
+//    TLLst cnf;
 
-    // список всех созданных комбинаций
-    QSet<TByt> createComb;
+//    int n = numX * 2;
 
-    // список уникальных комбинаций в двоичном представлении
-    TLByt lstBitComb;
+//    // список всех созданных комбинаций
+//    QSet<TByt> createComb;
 
-    // создаем минимально возможное количество дизьюнктов
+//    // список уникальных комбинаций в двоичном представлении
+//    TLByt lstBitComb;
 
-    int nXZ = numX + numZ;
+//    // создаем минимально возможное количество дизьюнктов
 
-    // вектор флагов использования переменной в выражении
-    TVec used(numX * 2,0);
-    used.reserve(numX * 2);
+//    int nXZ = numX + numZ;
 
-    // номера переменных
-    TLst nX;
-    nX.reserve(numX);
-    for (int i = 0; i < numX; ++i)
-        nX << i;
+//    // вектор флагов использования переменной в выражении
+//    TVec used(numX * 2,0);
+//    used.reserve(numX * 2);
 
-    // номера противоположных переменных
-    TLst nZ;
-    nZ.reserve(numZ);
-    for (int i = numX; i < nXZ; ++i)
-        nZ << i;
+//    // номера переменных
+//    TLst nX;
+//    nX.reserve(numX);
+//    for (int i = 0; i < numX; ++i)
+//        nX << i;
 
-    // максимальная длина дизьюнкта которую можно сформировать из оставшихся переменных
-    int maxPossiblLen = numX;
+//    // номера противоположных переменных
+//    TLst nZ;
+//    nZ.reserve(numZ);
+//    for (int i = numX; i < nXZ; ++i)
+//        nZ << i;
 
-    while (!nX.isEmpty() || !nZ.isEmpty()) {
+//    // максимальная длина дизьюнкта которую можно сформировать из оставшихся переменных
+//    int maxPossiblLen = numX;
 
-        int rndVar;
+//    while (!nX.isEmpty() || !nZ.isEmpty()) {
 
-        TByt bitComb(n,'0');
-        TLst decComb;
-        TLst cnfComb;
+//        int rndVar;
 
-        while (decComb.size() < lenDisMax) {
+//        TByt bitComb(n,'0');
+//        TLst decComb;
+//        TLst cnfComb;
 
-            if (nX.size() == 1 || (nZ.isEmpty() && !nX.isEmpty())) {
-                rndVar = nX.at(0);
-            }
-            else if (nZ.size() == 1 || (nX.isEmpty() && !nZ.isEmpty())) {
-                rndVar = nZ.at(0);
-            }
-            else {
-                do {
+//        while (decComb.size() < lenDisMax) {
 
-                    rndVar = qrand() % nXZ;    // случайный номер [0..n)
+//            if (nX.size() == 1 || (nZ.isEmpty() && !nX.isEmpty())) {
+//                rndVar = nX.at(0);
+//            }
+//            else if (nZ.size() == 1 || (nX.isEmpty() && !nZ.isEmpty())) {
+//                rndVar = nZ.at(0);
+//            }
+//            else {
+//                do {
 
-                } while (bitComb.at(rndVar) == '1' ||
-                         bitComb.at(m_bfv->boolFunction()->varNot(rndVar)) == '1' ||
-                         ((used.at(rndVar) == 1) && maxPossiblLen >= lenDisMax));
-            }
+//                    rndVar = qrand() % nXZ;    // случайный номер [0..n)
 
-            used[rndVar] = 1;
-            bitComb[rndVar] = '1';
-            decComb << rndVar;
-            cnfComb << m_bfv->boolFunction()->varDIMACS(rndVar);
-            if (rndVar < numX)
-                nX.removeOne(rndVar);
-            else
-                nZ.removeOne(rndVar);
+//                } while (bitComb.at(rndVar) == '1' ||
+//                         bitComb.at(m_bfv->boolFunction()->varNot(rndVar)) == '1' ||
+//                         ((used.at(rndVar) == 1) && maxPossiblLen >= lenDisMax));
+//            }
 
-            if (used.at(m_bfv->boolFunction()->varNot(rndVar)) == 1 ||
-                (rndVar < numX && rndVar > numZ - 1))
-                --maxPossiblLen;
-        }
+//            used[rndVar] = 1;
+//            bitComb[rndVar] = '1';
+//            decComb << rndVar;
+//            cnfComb << m_bfv->boolFunction()->varDIMACS(rndVar);
+//            if (rndVar < numX)
+//                nX.removeOne(rndVar);
+//            else
+//                nZ.removeOne(rndVar);
 
-        if (createComb.contains(bitComb))
-            continue;
+//            if (used.at(m_bfv->boolFunction()->varNot(rndVar)) == 1 ||
+//                (rndVar < numX && rndVar > numZ - 1))
+//                --maxPossiblLen;
+//        }
 
-        dis << decComb;
-        cnf << cnfComb;
-        m_createDis = dis.size();
-        lstBitComb << bitComb;
-        createComb << bitComb;
-    }
+//        if (createComb.contains(bitComb))
+//            continue;
 
-    // продолжаем создавать дизьюнкты функции до заданного количества
+//        dis << decComb;
+//        cnf << cnfComb;
+//        m_createDis = dis.size();
+//        lstBitComb << bitComb;
+//        createComb << bitComb;
+//    }
 
-    // определяем возможное количество комбинаций дизьюнктов
-    TVVecd matrix(nXZ + 1,TVecd(nXZ + 1,0));
-    fillMatrixCombinations(matrix);
-    for (int k = lenDisMin; k <= lenDisMax; ++k)
-        m_combinations += static_cast<double>(matrix.at(nXZ).at(k));
+//    // продолжаем создавать дизьюнкты функции до заданного количества
 
-    // diffMaxMin - используется для смещения диапозона
-    // случайных чисел в границы [m_lenDisMin,m_lenDisMax]
-    // +1  - для того что бы m_lenDisMax входил в диапозон
-    int diffMaxMin = lenDisMax - lenDisMin + 1;
+//    // определяем возможное количество комбинаций дизьюнктов
+//    CCombinasion comb(nXZ);
+////    TVVecd matrix(nXZ + 1,TVecd(nXZ + 1,0));
+////    fillMatrixCombinations(matrix);
+////    for (int k = lenDisMin; k <= lenDisMax; ++k)
+////        m_combinations += static_cast<double>(matrix.at(nXZ).at(k));
+//    for (int k = lenDisMin; k <= lenDisMax; ++k)
+//        m_combinations += comb.numberCombinasion(k);
 
-    m_createCombinations = static_cast<double>(createComb.size());
+//    // diffMaxMin - используется для смещения диапозона
+//    // случайных чисел в границы [m_lenDisMin,m_lenDisMax]
+//    // +1  - для того что бы m_lenDisMax входил в диапозон
+//    int diffMaxMin = lenDisMax - lenDisMin + 1;
 
-    while (m_createCombinations < m_combinations && m_createDis < m_numDisMax) {
+//    m_createCombinations = static_cast<double>(createComb.size());
 
-        if (m_stopped)
-            return;
+//    while (m_createCombinations < m_combinations && m_createDis < m_numDisMax) {
 
-        // получаем случайное количество переменных
-        // для нового дизъюнкта в пределах [m_lenDisMin,m_lenDisMax]
-        int rndVarDis = (qrand() % diffMaxMin ) + lenDisMin;
+//        if (m_stopped)
+//            return;
 
-        // случайный номер переменной
-        int rndVar = 0;
+//        // получаем случайное количество переменных
+//        // для нового дизъюнкта в пределах [m_lenDisMin,m_lenDisMax]
+//        int rndVarDis = (qrand() % diffMaxMin ) + lenDisMin;
 
-        TByt bitComb(n,'0');
+//        // случайный номер переменной
+//        int rndVar = 0;
 
-        // десятичное представление комбинации, множество номеров переменных
-        TLst decComb;
-        TLst cnfComb;
+//        TByt bitComb(n,'0');
 
-        // создаем комбинацию переменных
-        while (decComb.size() < rndVarDis) {
+//        // десятичное представление комбинации, множество номеров переменных
+//        TLst decComb;
+//        TLst cnfComb;
 
-            do {
-                rndVar = qrand() % nXZ;    // случайный номер [0..n)
-            } while (bitComb.at(rndVar) == '1');
+//        // создаем комбинацию переменных
+//        while (decComb.size() < rndVarDis) {
 
-            bitComb[rndVar] = '1';
-            decComb << rndVar;
-            cnfComb << m_bfv->boolFunction()->varDIMACS(rndVar);
-        }
+//            do {
+//                rndVar = qrand() % nXZ;    // случайный номер [0..n)
+//            } while (bitComb.at(rndVar) == '1');
 
-        // проверяем создавалась ли уже полученная комбинация
-        // если да то переходим к созданию новой комбинации
-        if (createComb.contains(bitComb))
-            continue;
+//            bitComb[rndVar] = '1';
+//            decComb << rndVar;
+//            cnfComb << m_bfv->boolFunction()->varDIMACS(rndVar);
+//        }
 
-        createComb << bitComb;
+//        // проверяем создавалась ли уже полученная комбинация
+//        // если да то переходим к созданию новой комбинации
+//        if (createComb.contains(bitComb))
+//            continue;
 
-        m_createCombinations = static_cast<double>(createComb.size());
+//        createComb << bitComb;
 
-        // проверяем содержит ли комбинация противоположные переменные
-        bool isConflict = false;
+//        m_createCombinations = static_cast<double>(createComb.size());
 
-        foreach (int x, decComb)
-            if (bitComb.at(m_bfv->boolFunction()->varNot(x)) == '1') {
-                isConflict = true;
-                break;
-            }
+//        // проверяем содержит ли комбинация противоположные переменные
+//        bool isConflict = false;
 
-        if (isConflict)
-            continue;
+//        foreach (int x, decComb)
+//            if (bitComb.at(m_bfv->boolFunction()->varNot(x)) == '1') {
+//                isConflict = true;
+//                break;
+//            }
 
-        // проверяем поглощается ли новая комбинация уже
-        // добавленными в функцию дизъюнктами
-        bool isAbsorb = false;
+//        if (isConflict)
+//            continue;
 
-        for (int i = 0; i < dis.size(); ++i) {
+//        // проверяем поглощается ли новая комбинация уже
+//        // добавленными в функцию дизъюнктами
+//        bool isAbsorb = false;
 
-            // комбинации одинаковый длины не могут поглотить друг друга
-            if (dis.at(i).size() == decComb.size())
-                continue;
+//        for (int i = 0; i < dis.size(); ++i) {
 
-            if (dis.at(i).size() > decComb.size())
-                isAbsorb = absorb(decComb,bitComb,lstBitComb.at(i));
-            else
-                isAbsorb = absorb(dis.at(i),lstBitComb.at(i),bitComb);
+//            // комбинации одинаковый длины не могут поглотить друг друга
+//            if (dis.at(i).size() == decComb.size())
+//                continue;
 
-            if (isAbsorb)
-                break;
-        }
+//            if (dis.at(i).size() > decComb.size())
+//                isAbsorb = absorb(decComb,bitComb,lstBitComb.at(i));
+//            else
+//                isAbsorb = absorb(dis.at(i),lstBitComb.at(i),bitComb);
 
-        // если новая комбинация не поглащается и не поглащает уже созданных
-        // добавляем ее в список комбинаций и в список дизъюнктов
-        if (!isAbsorb) {
-            dis << decComb;
-            cnf << cnfComb;
-            m_createDis = dis.size();
-            lstBitComb << bitComb;
-        }
-    }
+//            if (isAbsorb)
+//                break;
+//        }
 
-    m_bfv->boolFunction()->init(cnf);
+//        // если новая комбинация не поглащается и не поглащает уже созданных
+//        // добавляем ее в список комбинаций и в список дизъюнктов
+//        if (!isAbsorb) {
+//            dis << decComb;
+//            cnf << cnfComb;
+//            m_createDis = dis.size();
+//            lstBitComb << bitComb;
+//        }
+//    }
+
+//    m_bfv->boolFunction()->init(cnf);
 
     emit successfull(m_bfv);
 }
@@ -263,21 +282,3 @@ inline bool CBFGenerate::absorb(const TLst &lessDecDis,
     return true;
 }
 //-------------------------------------------------------------------
-
-
-void CBFGenerate:: fillMatrixCombinations(TVVecd &c)
-{
-    int n = c.size();
-
-    for(int i = 0; i < n; ++i) {
-
-       c[i][0] = 1;
-       c[i][i] = 1;
-
-       for(int j = 1; j < i; ++j)
-           c[i][j] = c[i-1][j-1] + c[i-1][j];
-    }
-}
-//-------------------------------------------------------------------
-
-

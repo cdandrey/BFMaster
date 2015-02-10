@@ -1,38 +1,44 @@
+#include "cwindow_main.h"
+#include "cbool_formula.h"
+#include "cexecut_object.h"
+#include "cexecut_thread.h"
+#include "csat.h"
+#include "cwidget_bf_generate.h"
+#include "cwidget_bf_list.h"
+#include "cwidget_bf_view.h"
+#include "cwidget_consol.h"
+#include "cwidget_panel_mode.h"
+#include "cwidget_tree_sat.h"
+
 #include <QtDebug>
+#include <QCloseEvent>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMessageBox>
+#include <QSettings>
 #include <QScrollBar>
 #include <QSplitter>
 #include <QTextStream>
 #include <QTimerEvent>
 
-#include "cbf_generate.h"
-#include "cbf_view.h"
-#include "csat.h"
-#include "cwidget_bf_generate.h"
-#include "cwidget_bf_view.h"
-#include "cwidget_consol.h"
-#include "cwidget_control.h"
-#include "cwidget_list_bf.h"
-#include "cwidget_tree_sat.h"
-#include "cwindow_main.h"
+const QString CWindowMain::BFSuffix("bf");
 
 CWindowMain::CWindowMain(QWidget *parent)
-    : QMainWindow(parent)
+    : QMainWindow(parent),
+      m_executObject(NULL),
+      m_executThread(NULL),
+      m_executTimer(0)
 {
-    setStyleSheet("QSplitter::handle:vertical {height: 0px;}"
-                  "QSplitter::handle:horizontal {width: 0px;}");
-
     m_widgetBFGenerate  = new CWidgetBFGenerate(this);
+    m_widgetBFList      = new CWidgetBFList(this);
     m_widgetBFView      = new CWidgetBFView(this);
     m_widgetConsol      = new CWidgetConsol(this);
     m_widgetConsol->setVisible(false);
-    m_widgetControl     = new CWidgetControl(this);
-    m_widgetListBF      = new CWidgetListBF(this);
+    m_widgetPanelMode   = new CWidgetPanelMode(this);
     m_widgetTreeSat     = new CWidgetTreeSat(this);
 
     QWidget *wBFViewBFGenerate = new QWidget();
@@ -45,7 +51,7 @@ CWindowMain::CWindowMain(QWidget *parent)
     wBFViewBFGenerate->setLayout(boxBFViewBFGenerate);
 
     QSplitter *spListBFTreeAlg = new QSplitter(Qt::Vertical);
-    spListBFTreeAlg->addWidget(m_widgetListBF);
+    spListBFTreeAlg->addWidget(m_widgetBFList);
     spListBFTreeAlg->addWidget(m_widgetTreeSat);
 
     QSplitter *spTreeView = new QSplitter(Qt::Horizontal);
@@ -64,7 +70,7 @@ CWindowMain::CWindowMain(QWidget *parent)
     QHBoxLayout *hbox = new QHBoxLayout();
     centralWidget()->setLayout(hbox);
 
-    hbox->addWidget(m_widgetControl);
+    hbox->addWidget(m_widgetPanelMode);
     hbox->addWidget(spMain);
     hbox->setMargin(0);
     hbox->setSpacing(0);
@@ -94,51 +100,62 @@ CWindowMain::CWindowMain(QWidget *parent)
     mainMenu = menuBar()->addMenu(tr("Операции"));
     mainMenu = menuBar()->addMenu(tr("Помощь"));
 
-    m_timerGenerate = 0;
-    m_timerRunSat = 0;
-
-    // m_widgetControl
-    connect(m_widgetControl,SIGNAL(triggeredRun()),
+    // m_widgetPanelMode
+    connect(m_widgetPanelMode,SIGNAL(triggeredRun()),
             this,SLOT(on_satCheckedRun()));
-    connect(m_widgetControl,SIGNAL(triggeredRunLog()),
+    connect(m_widgetPanelMode,SIGNAL(triggeredRunLog()),
             this,SLOT(on_satCheckedRunLog()));
 
-    connect(m_widgetControl,SIGNAL(toggledRand(bool)),
-            m_widgetListBF,SLOT(setVisible(bool)));
-    connect(m_widgetControl,SIGNAL(toggledRand(bool)),
-            m_widgetListBF,SLOT(on_disabledHide(bool)));
+    connect(m_widgetPanelMode,SIGNAL(toggledRand(bool)),
+            m_widgetBFList,SLOT(setVisible(bool)));
+    connect(m_widgetPanelMode,SIGNAL(toggledRand(bool)),
+            m_widgetBFList,SLOT(on_disabledHide(bool)));
 
-    connect(m_widgetControl,SIGNAL(toggledRand(bool)),
+    connect(m_widgetPanelMode,SIGNAL(toggledRand(bool)),
             m_widgetBFGenerate,SLOT(setVisible(bool)));
-    connect(m_widgetControl,SIGNAL(toggledRand(bool)),
+    connect(m_widgetPanelMode,SIGNAL(toggledRand(bool)),
             m_widgetBFGenerate->actVisible(),SLOT(setChecked(bool)));
-    connect(m_widgetControl,SIGNAL(toggledRand(bool)),
+    connect(m_widgetPanelMode,SIGNAL(toggledRand(bool)),
             m_widgetBFGenerate->actVisible(),SLOT(setEnabled(bool)));
 
-    connect(m_widgetControl,SIGNAL(toggledRand(bool)),
+    connect(m_widgetPanelMode,SIGNAL(toggledRand(bool)),
             m_widgetTreeSat,SLOT(setVisible(bool)));
-    connect(m_widgetControl,SIGNAL(toggledRand(bool)),
+    connect(m_widgetPanelMode,SIGNAL(toggledRand(bool)),
             m_widgetTreeSat,SLOT(on_disabledHide(bool)));
 
-    // m_widgetListBF
-    connect(m_widgetListBF,SIGNAL(send(CBFView*)),
-            m_widgetBFGenerate,SLOT(on_set(CBFView*)));
+    // m_widgetBFView
+    connect(m_widgetBFView,SIGNAL(message(QString)),
+            this,SIGNAL(messageAppend(QString)));
 
-    connect(m_widgetListBF,SIGNAL(view(CBFView*)),
-            m_widgetBFView,SLOT(on_view(CBFView*)));
+    connect(this,SIGNAL(triggeredView()),
+            m_widgetBFView,SIGNAL(triggered()));
+
+    // m_widgetBFList
+    connect(m_widgetBFList,SIGNAL(selected(QString,CBoolFormula*)),
+            m_widgetBFGenerate,SLOT(on_set(QString,CBoolFormula*)));
+
+    connect(m_widgetBFList,SIGNAL(message(QString)),
+            this,SIGNAL(messageAppend(QString)));
+
+    connect(m_widgetBFList,SIGNAL(selected(QString,CBoolFormula*)),
+            m_widgetBFView,SLOT(on_set(QString,CBoolFormula*)));
 
     // m_widgetBFGenerate
-    connect(m_widgetBFGenerate,SIGNAL(generate(CBFView*)),
-            this,SLOT(on_generateStarted(CBFView*)));
+    connect(m_widgetBFGenerate,SIGNAL(generate(QString,CBoolFormula*)),
+            m_widgetBFList,SIGNAL(append(QString,CBoolFormula*)));
 
-    connect(m_widgetBFGenerate,SIGNAL(remove(CBFView*)),
-            m_widgetListBF,SLOT(on_remove(CBFView*)));
+    connect(m_widgetBFGenerate,SIGNAL(generate(QString,CBoolFormula*)),
+            this,SLOT(on_executed(QString,CBoolFormula*)));
+
+    connect(m_widgetBFGenerate,SIGNAL(regenerate(QString,CBoolFormula*)),
+            this,SLOT(on_executed(QString,CBoolFormula*)));
 
     connect(m_widgetBFGenerate,SIGNAL(remove(QString)),
-            m_widgetBFView,SLOT(on_remove(QString)));
+            m_widgetBFList,SIGNAL(remove(QString)));
 
     // m_widgetTreeSat
-    connect(m_widgetTreeSat,SIGNAL(run(QString)),this,SLOT(on_satRun(QString)));
+    connect(m_widgetTreeSat,SIGNAL(run(QString)),
+            this,SLOT(on_satRun(QString)));
 
     // main
     connect(this,SIGNAL(messageAppend(QString)),
@@ -150,221 +167,110 @@ CWindowMain::CWindowMain(QWidget *parent)
     connect(this,SIGNAL(executingOperation(QString)),
             m_widgetConsol,SLOT(executingOperation(QString)));
 
-    m_widgetControl->on_checkedRand();
+    connect(this,SIGNAL(append(QString,CBoolFormula*)),
+            m_widgetBFList,SIGNAL(append(QString,CBoolFormula*)));
+
+    connect(this,SIGNAL(locked(bool)),
+            m_widgetBFGenerate,SLOT(on_locked(bool)));
+
+    m_widgetPanelMode->on_checkedRand();
 }
 //-------------------------------------------------------------------
 
 
 CWindowMain::~CWindowMain()
 {
+    if (m_executObject != NULL)
+        delete m_executObject;
+
+    if (m_executThread != NULL)
+        delete m_executThread;
+
+    delete m_widgetBFGenerate;
+    delete m_widgetBFList;
+    delete m_widgetBFView;
+    delete m_widgetConsol;
+    delete m_widgetPanelMode;
+    delete m_widgetTreeSat;
+
+    m_actOpen->~QAction();
+    m_actSave->~QAction();
+    m_actSaveAs->~QAction();
+    mainMenu->~QMenu();
 }
 //-------------------------------------------------------------------
 
 
-void CWindowMain::on_open()
+void CWindowMain::closeEvent(QCloseEvent *e)
 {
-    TLStr lstFiles =  QFileDialog::getOpenFileNames(this,tr("Открыть функцию"),"",
-                                                    tr("Булева функция(*.%1)").arg(CBFView::suffix()));
+    if (m_executObject != NULL && m_executThread != NULL) {
 
-    foreach (TStr fileName, lstFiles) {
+        int btn = QMessageBox::warning(this,this->windowTitle(),
+                                       tr("Приложение выполняет операцию: %1\n\n"
+                                          "Прервать операцию и закрыть приложение?")
+                                        .arg(m_executObject->progressDescription()),
+                                       QMessageBox::Yes,
+                                       QMessageBox::No,
+                                       QMessageBox::Cancel);
 
-        QFile file(fileName);
-        QTextStream stream(&file);
-
-        if (!file.open(QIODevice::ReadOnly)){
-            emit messageAppend(TStr("%1 : %2")
-                               .arg(tr("Невозможно открыть файл"))
-                               .arg(fileName));
-            continue;
+        if (btn == QMessageBox::No
+            || btn == QMessageBox::Cancel)
+        {
+            e->ignore();
+            return;
         }
-
-        QRegExp regDIMACS("^\\s*p\\s+cnf\\s+\\d+\\s+\\d+\\s*$");
-        regDIMACS.setCaseSensitivity(Qt::CaseInsensitive);
-
-        TStr line = "";
-        int pos = -1;
-
-        while (pos == -1 && !stream.atEnd()) {
-            line = stream.readLine();
-            pos = regDIMACS.indexIn(line);
-        }
-
-        if (pos == -1) {
-            emit messageAppend(TStr("%1 : %2")
-                               .arg(tr("ОШИБКА! Неизвестный формат файла"))
-                               .arg(fileName));
-            continue;
-        }
-
-        TLLst cnf;
-
-        QRegExp regDigit("\\d+|-\\d+");
-
-        while (!stream.atEnd()) {
-
-            line = stream.readLine();
-
-            int pos = 0;
-            TLst icnf;
-            while (((pos = regDigit.indexIn(line, pos)) != -1)
-                   && (regDigit.cap(0) != "0"))
-            {
-                icnf << regDigit.cap(0).toInt();
-                pos += regDigit.matchedLength();
-            }
-
-            if (icnf.size() > 1)
-                cnf << icnf;
-            else
-                emit messageAppend(TStr("%1 : %2")
-                                   .arg(tr("ОШИБКА! Дизъюнкт сожержит меньше двух переменных."))
-                                   .arg(fileName));
-        }
-
-        if (cnf.isEmpty())
-            continue;
-
-        CBoolFunction *bf = new CBoolFunction(cnf);
-        QFileInfo fileInfo(file);
-        CBFView *bfv = new CBFView(bf,fileInfo.baseName(),fileInfo.absolutePath());
-
-        m_widgetListBF->on_append(bfv);
-        m_widgetBFGenerate->on_set(bfv);
-
-        file.close();
     }
+
+    e->accept();
 }
-//------------------------------------------------------------------
+//-------------------------------------------------------------------
 
 
-void CWindowMain::on_save()
+void CWindowMain::on_executed(const QString &name,CBoolFormula *bf)
 {
-    CBFView *bfv = m_widgetListBF->bfCurrent();
-
-    if (bfv == NULL)
+    if (m_executObject != NULL || m_executThread != NULL)
         return;
 
-    TStr fileName = "";
-    if (bfv->pathFile().isEmpty()){
-        fileName = QFileDialog::getSaveFileName(this,tr("Сохранить функцию"),bfv->boolFunctionName(),
-                                                tr("Булева функция(*.%1)").arg(CBFView::suffix()));
-    } else {
-        fileName = bfv->absoluteFileName();
-    }
+    m_executObject = new CExecutGenerateFormula(name,bf);
+    m_executThread = new CExecutThread(this,m_executObject);
 
-    on_save(fileName,bfv);
+    connect(m_widgetBFGenerate,SIGNAL(terminated()),
+            m_executThread,SLOT(on_terminated()));
+
+    connect(m_executThread,SIGNAL(finished()),
+            m_widgetBFGenerate,SLOT(on_toggleRemove()));
+
+    connect(m_executThread,SIGNAL(finished()),
+            this,SLOT(on_finished()));
+
+    startExec();
 }
 //------------------------------------------------------------------
 
 
-void CWindowMain::on_save_as()
+void CWindowMain::on_finished()
 {
-    CBFView *bfv = m_widgetListBF->bfCurrent();
-
-    TStr fileName = "";
-    fileName = QFileDialog::getSaveFileName(this,tr("Сохранить функцию"),bfv->boolFunctionName(),
-                                                tr("Булева функция(*.%1)").arg(CBFView::suffix()));
-    on_save(fileName,bfv);
-}
-//------------------------------------------------------------------
-
-
-void CWindowMain::on_save(const TStr &fileName, CBFView *bfv)
-{
-    QFile file(fileName);
-    QTextStream stream(&file);
-
-    if (!file.open(QIODevice::WriteOnly)){
-        emit messageAppend(TStr("%1 : %2")
-                           .arg(tr("Невозможно открыть файл"))
-                           .arg(fileName));
-        return;
-    }
-
-    stream << bfv->viewDIMACS();
-    QFileInfo fileInfo(file);
-    bfv->setBoolFunctionName(fileInfo.baseName());
-    bfv->setPathFile(fileInfo.absolutePath());
-    m_widgetListBF->on_updateCurrentItem();
-
-    file.close();
-}
-//------------------------------------------------------------------
-
-
-void CWindowMain::timerEvent(QTimerEvent *event)
-{
-    if (event->timerId() == m_timerGenerate) {
-
-        emit executingOperation(m_bfGenerate->progressDescription());
-        emit messageAppend(m_bfGenerate->progress());
-
-    } else if (event->timerId() == m_timerRunSat) {
-
-        emit executingOperation(m_sat->progressDescription());
-        emit messageAppend(m_sat->progress());
-    }
-}
-//------------------------------------------------------------------
-
-
-void CWindowMain::on_generateFinished()
-{
-    killTimer(m_timerGenerate);
-    m_timerGenerate = 0;
+    killTimer(m_executTimer);
+    m_executTimer = 0;
 
     emit executingOperation(tr("finished"));
-    emit messageAppend(m_bfGenerate->progressFinished());
-}
-//------------------------------------------------------------------
+    emit messageAppend(m_executObject->progressFinished());
+    emit locked(false);
+    emit triggeredView();
 
+    delete m_executObject;
+    delete m_executThread;
 
-void CWindowMain::on_generateStarted(CBFView *bfv)
-{
-    m_bfGenerate = new CBFGenerate(bfv);
-
-    if (m_bfGenerate == NULL)
-        return;
-
-    connect(m_bfGenerate,SIGNAL(started()),m_widgetControl,SLOT(on_locked()));
-    connect(m_bfGenerate,SIGNAL(finished()),m_widgetControl,SLOT(on_unlocked()));
-
-    connect(m_bfGenerate,SIGNAL(started()),m_widgetTreeSat,SLOT(on_locked()));
-    connect(m_bfGenerate,SIGNAL(finished()),m_widgetTreeSat,SLOT(on_unlocked()));
-    connect(m_bfGenerate,SIGNAL(finished()),m_widgetTreeSat,SLOT(on_runNextChecked()));
-
-    connect(m_bfGenerate,SIGNAL(started()),m_widgetBFGenerate,SLOT(on_generateLocked()));
-    connect(m_bfGenerate,SIGNAL(finished()),m_widgetBFGenerate,SLOT(on_generateUnlocked()));
-
-    connect(m_widgetBFGenerate,SIGNAL(stopped()),m_bfGenerate,SLOT(on_stopped()));
-
-    connect(m_bfGenerate,SIGNAL(finished()),
-            this,SLOT(on_generateFinished()));
-    connect(m_bfGenerate,SIGNAL(successfull(CBFView*)),
-            m_widgetListBF,SLOT(on_append(CBFView*)));
-    connect(m_bfGenerate,SIGNAL(finished()),m_bfGenerate,SLOT(deleteLater()));
-
-    m_widgetConsol->actVisible()->toggled(true);
-
-    emit executingOperation(m_bfGenerate->progressDescription());
-
-    int sizeTask = bfv->boolFunction()->numX() * bfv->boolFunction()->numDis();
-    if (sizeTask < 1000)
-        m_timerGenerate = startTimer(1);
-    else if (sizeTask < 50000)
-        m_timerGenerate = startTimer(500);
-    else
-        m_timerGenerate = startTimer(5000);
-
-    m_bfGenerate->start();
+    m_executObject = NULL;
+    m_executThread = NULL;
 }
 //------------------------------------------------------------------
 
 
 void CWindowMain::on_satFinished()
 {
-    killTimer(m_timerRunSat);
-    m_timerRunSat = 0;
+    killTimer(m_executTimer);
+    m_executTimer = 0;
 
     emit executingOperation(tr("finished"));
     emit messageAppend(m_sat->progressFinished());
@@ -374,65 +280,191 @@ void CWindowMain::on_satFinished()
 
 void CWindowMain::on_satRun(const QString &name)
 {
-    if (m_widgetListBF->bfCurrent() == NULL)
-        return;
+    Q_UNUSED(name);
+//    if (m_widgetBFList->bfCurrent() == NULL)
+//        return;
 
-    CSatCreater *satCreater = new CSatCreater(name);
+//    CSatCreater *satCreater = new CSatCreater(name);
 
-    m_sat = satCreater->create(m_widgetListBF->bfCurrent());
+//    m_sat = satCreater->create(m_widgetBFList->bfCurrent());
 
-    delete satCreater;
+//    delete satCreater;
 
-    if (m_sat == NULL)
-        return;
+//    if (m_sat == NULL)
+//        return;
 
-    connect(m_sat,SIGNAL(started()),m_widgetControl,SLOT(on_runLocked()));
-    connect(m_sat,SIGNAL(finished()),m_widgetControl,SLOT(on_runUnlocked()));
+//    connect(m_sat,SIGNAL(started()),m_widgetPanelMode,SLOT(on_runLocked()));
+//    connect(m_sat,SIGNAL(finished()),m_widgetPanelMode,SLOT(on_runUnlocked()));
 
-    connect(m_sat,SIGNAL(started()),m_widgetTreeSat,SLOT(on_locked()));
-    connect(m_sat,SIGNAL(finished()),m_widgetTreeSat,SLOT(on_unlocked()));
-    connect(m_sat,SIGNAL(finished()),m_widgetTreeSat,SLOT(on_runNextChecked()));
+//    connect(m_sat,SIGNAL(started()),m_widgetTreeSat,SLOT(on_locked()));
+//    connect(m_sat,SIGNAL(finished()),m_widgetTreeSat,SLOT(on_unlocked()));
+//    connect(m_sat,SIGNAL(finished()),m_widgetTreeSat,SLOT(on_runNextChecked()));
 
-    connect(m_sat,SIGNAL(started()),m_widgetBFGenerate,SLOT(on_locked()));
-    connect(m_sat,SIGNAL(finished()),m_widgetBFGenerate,SLOT(on_unlocked()));
+//    connect(m_sat,SIGNAL(started()),m_widgetBFGenerate,SLOT(on_locked()));
+//    connect(m_sat,SIGNAL(finished()),m_widgetBFGenerate,SLOT(on_unlocked()));
 
-    connect(m_sat,SIGNAL(terminated()),this,SLOT(on_satFinished()));
-    connect(m_sat,SIGNAL(successful(CBFView*)),this,SLOT(on_satFinished()));
-    connect(m_sat,SIGNAL(finished()),m_sat,SLOT(deleteLater()));
+//    connect(m_sat,SIGNAL(terminated()),this,SLOT(on_satFinished()));
+//    connect(m_sat,SIGNAL(successful(CBFView*)),this,SLOT(on_satFinished()));
+//    connect(m_sat,SIGNAL(finished()),m_sat,SLOT(deleteLater()));
 
-    connect(m_widgetControl,SIGNAL(triggeredStopRun()),
-            m_sat,SLOT(on_stopped()));
+//    connect(m_widgetPanelMode,SIGNAL(triggeredStopRun()),
+//            m_sat,SLOT(on_stopped()));
 
-    connect(m_sat,SIGNAL(successful(CBFView*)),
-            m_widgetBFView,SLOT(on_viewSat(CBFView*)));
+//    connect(m_sat,SIGNAL(successful(CBFView*)),
+//            m_widgetBFView,SLOT(on_viewSat(CBFView*)));
 
-    m_widgetConsol->actVisible()->toggled(true);
+//    m_widgetConsol->actVisible()->toggled(true);
 
-    emit executingOperation(m_sat->progressDescription());
+//    emit executingOperation(m_sat->progressDescription());
 
-    m_timerRunSat = startTimer(100);
+//    m_executTimer = startTimer(100);
 
-    m_sat->start();
+//    m_sat->start();
 }
 //------------------------------------------------------------------
 
 
 void CWindowMain::on_satCheckedRun()
 {
-    if (m_widgetListBF->bfCurrent() == NULL)
-        return;
+//    if (m_widgetBFList->bfCurrent() == NULL)
+//        return;
 
-    m_widgetTreeSat->on_startRunChecked();
+//    m_widgetTreeSat->on_startRunChecked();
 }
 //------------------------------------------------------------------
 
 
 void CWindowMain::on_satCheckedRunLog()
 {
-    if (m_widgetListBF->bfCurrent() == NULL)
-        return;
+//    if (m_widgetBFList->bfCurrent() == NULL)
+//        return;
 
-    m_widgetTreeSat->on_startRunLogChecked();
+//    m_widgetTreeSat->on_startRunLogChecked();
 }
 //------------------------------------------------------------------
 
+
+void CWindowMain::on_open()
+{
+    QStringList lstFiles =  QFileDialog::getOpenFileNames(this,tr("Открыть функцию"),"",
+                                                    tr("Булева функция(*.%1)").arg(BFSuffix));
+
+    foreach (QString fileName, lstFiles) {
+
+        QFile file(fileName);
+
+        if (file.open(QIODevice::ReadOnly)) {
+
+            QByteArray text(file.readAll());
+            file.close();
+
+            QList<QList<int> > cnf(CBoolFormula::fromDimacs(text));
+
+            if (!cnf.isEmpty()) {
+
+                emit m_widgetBFList->append(QFileInfo(file).baseName(),
+                                    new CBoolFormula(cnf));
+            } else {
+                emit messageAppend(tr("ОШИБКА!Неизвестный формат файла функции."));
+            }
+
+        } else {
+            emit messageAppend(TStr("%1 : %2")
+                               .arg(tr("Невозможно открыть файл"))
+                               .arg(fileName));
+        }
+    }
+}
+//------------------------------------------------------------------
+
+
+void CWindowMain::on_save()
+{
+    QString bfName(m_widgetBFList->currentBFName());
+
+    if (bfName.isEmpty()) {
+        emit messageAppend(tr("ОШИБКА!Не выбрана функция из списка."));
+        return;
+    }
+
+    QString fileName(QString("%1.%2").arg(bfName).arg(BFSuffix));
+
+    QFileInfo fileInfo(fileName);
+
+    if (!fileInfo.isFile()) {
+        QString fileName = QFileDialog::getSaveFileName(this,tr("Сохранить функцию"),bfName,
+                                                tr("Булева функция(*.%1)").arg(BFSuffix));
+
+        fileInfo.setFile(fileName);
+
+        if (!m_widgetBFList->rename(bfName,fileInfo.baseName())) {
+            emit messageAppend(tr("Функция не сохранена."));
+            return;
+        }
+    }
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly)) {
+        emit messageAppend(tr("ОШИБКА!Невозможно открыть файл %1!").arg(fileName));
+        return;
+    }
+
+    file.write(m_widgetBFList->currentBFDimacs().toLatin1());
+    file.close();
+    emit messageAppend(tr("Функция %1 - сохранена.").arg(m_widgetBFList->currentBFName()));
+}
+//------------------------------------------------------------------
+
+
+void CWindowMain::on_save_as()
+{
+    QString bfName(m_widgetBFList->currentBFName());
+
+    if (bfName.isEmpty()) {
+        emit messageAppend(tr("ОШИБКА!Не выбрана функция из списка."));
+        return;
+    }
+
+    QString fileName = QFileDialog::getSaveFileName(this,tr("Сохранить функцию"),bfName,
+                                            tr("Булева функция(*.%1)").arg(BFSuffix));
+
+    QFileInfo fileInfo(fileName);
+
+    if (!m_widgetBFList->rename(bfName,fileInfo.baseName())) {
+        emit messageAppend(tr("Функция не сохранена."));
+        return;
+    }
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly)) {
+        emit messageAppend(tr("ОШИБКА!Невозможно открыть файл %1!").arg(fileName));
+        return;
+    }
+
+    file.write(m_widgetBFList->currentBFDimacs().toLatin1());
+    file.close();
+    emit messageAppend(tr("Функция %1 - сохранена.").arg(m_widgetBFList->currentBFName()));
+}
+//------------------------------------------------------------------
+
+
+void CWindowMain::startExec()
+{
+    emit executingOperation(m_executObject->progressDescription());
+    emit locked(true);
+
+    m_executTimer = startTimer(100);
+    m_executThread->start();
+}
+//------------------------------------------------------------------
+
+
+void CWindowMain::timerEvent(QTimerEvent *)
+{
+    if (m_executObject != NULL && !m_executObject->isNullObject()) {
+        //emit executingOperation(m_executObject->progressDescription());
+        emit messageAppend(m_executObject->progress());
+        qDebug() << m_executObject->progress();
+    }
+}
+//------------------------------------------------------------------

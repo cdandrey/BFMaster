@@ -1,37 +1,7 @@
 #include "cboolfunction.h"
+#include "ccombinasion.h"
 
 #include <QTime>
-
-CBoolFunction::CBoolFunction(const CBoolFunction &f)
-{
-    this->m_numX        = f.m_numX;
-    this->m_numZ        = f.m_numZ;
-    this->m_numDisMax   = f.m_numDisMax;
-    this->m_lenDisMin   = f.m_lenDisMin;
-    this->m_lenDisMax   = f.m_lenDisMax;
-    this->m_dis         = f.m_dis;
-    this->m_var         = f.m_var;
-}
-//---------------------------------------------------------------
-
-
-const CBoolFunction& CBoolFunction::operator =(const CBoolFunction &rhs)
-{
-    if (this == &rhs)
-        return *this;
-
-    this->m_numX        = rhs.m_numX;
-    this->m_numZ        = rhs.m_numZ;
-    this->m_numDisMax   = rhs.m_numDisMax;
-    this->m_lenDisMin   = rhs.m_lenDisMin;
-    this->m_lenDisMax   = rhs.m_lenDisMax;
-    this->m_dis         = rhs.m_dis;
-    this->m_var         = rhs.m_var;
-
-    return *this;
-}
-//---------------------------------------------------------------
-
 
 void CBoolFunction::init(const TParam &p)
 {
@@ -146,7 +116,97 @@ void CBoolFunction::init(const TLLst &cnf)
 //---------------------------------------------------------------
 
 
-void CBoolFunction::generate(double possibleCombinations)
+void CBoolFunction::genBegin()
+{
+    qsrand(QTime::currentTime().msec());
+
+    m_dis.clear();
+    m_var.clear();
+
+    int n = m_numX * 2;
+    for (int i = 0; i < n; ++i)
+        m_var << TLst();
+
+    m_satdata.clear();
+
+    QSet<TByt> createComb;  // список всех созданных комбинаций
+    TLByt      lstBitComb;  // список уникальных комбинаций в двоичном представлении
+
+    // создаем минимально возможное количество дизьюнктов
+
+    int nXZ = m_numX + m_numZ;
+
+    TVec used(m_numX * 2,0);    // вектор флагов использования переменной в выражении
+    used.reserve(m_numX * 2);
+
+
+    TLst nX;    // номера переменных
+    TLst nZ;    // номера противоположных переменных
+
+    nX.reserve(m_numX);
+    for (int i = 0; i < m_numX; ++i)
+        nX << i;
+
+    nZ.reserve(m_numZ);
+    for (int i = m_numX; i < nXZ; ++i)
+        nZ << i;
+
+    int maxPossiblLen = m_numX; // максимальная длина дизьюнкта которую можно сформировать из оставшихся переменных
+
+    while (!nX.isEmpty() || !nZ.isEmpty()) {
+
+        int rndVar;
+
+        TByt bitComb(n,'0');
+        TLst decComb;
+
+        while (decComb.size() < m_lenDisMax) {
+
+            if (nX.size() == 1 || (nZ.isEmpty() && !nX.isEmpty())) {
+                rndVar = nX.at(0);
+            }
+            else if (nZ.size() == 1 || (nX.isEmpty() && !nZ.isEmpty())) {
+                rndVar = nZ.at(0);
+            }
+            else {
+                // берем случайный номер пока он или его противоположный
+                // не присутсвует в комбинации или пока он небыл уже использован в предыдущих
+                // комбинациях если количество оставшихся переменных позволяет
+                // сформировать комбинацию максимального размера
+                do {
+
+                    rndVar = qrand() % nXZ;    // случайный номер [0..n)
+
+                } while (bitComb.at(rndVar) == '1' ||
+                         bitComb.at(varNot(rndVar)) == '1' ||
+                         ((used.at(rndVar) == 1) && maxPossiblLen >= m_lenDisMax));
+            }
+
+            used[rndVar] = 1;
+            bitComb[rndVar] = '1';
+            decComb << rndVar;
+            if (rndVar < m_numX)
+                nX.removeOne(rndVar);
+            else
+                nZ.removeOne(rndVar);
+
+            if (used.at(varNot(rndVar)) == 1 ||
+                (rndVar < m_numX && rndVar > m_numZ - 1))
+                --maxPossiblLen;
+        }
+
+        if (createComb.contains(bitComb))
+            continue;
+
+        addDis(decComb);
+        lstBitComb << bitComb;
+        createComb << bitComb;
+    }
+}
+//---------------------------------------------------------------
+
+
+void CBoolFunction::generate(ull_t possibleCombinations)
 {
     qsrand(QTime::currentTime().msec());
 
@@ -160,10 +220,10 @@ void CBoolFunction::generate(double possibleCombinations)
     m_satdata.clear();
 
     // список всех созданных комбинаций
-    QSet<TByt> createComb;
+    QSet<QByteArray> createComb;
 
     // список уникальных комбинаций в двоичном представлении
-    TLByt lstBitComb;
+    QList<QByteArray> lstBitComb;
 
     // создаем минимально возможное количество дизьюнктов
 
@@ -195,7 +255,7 @@ void CBoolFunction::generate(double possibleCombinations)
         TByt bitComb(n,'0');
         TLst decComb;
 
-        while (decComb.size() < lenDisMax()) {
+        while (decComb.size() < m_lenDisMax) {
 
             if (nX.size() == 1 || (nZ.isEmpty() && !nX.isEmpty())) {
                 rndVar = nX.at(0);
@@ -214,7 +274,7 @@ void CBoolFunction::generate(double possibleCombinations)
 
                 } while (bitComb.at(rndVar) == '1' ||
                          bitComb.at(varNot(rndVar)) == '1' ||
-                         ((used.at(rndVar) == 1) && maxPossiblLen >= lenDisMax()));
+                         ((used.at(rndVar) == 1) && maxPossiblLen >= m_lenDisMax));
             }
 
             used[rndVar] = 1;
@@ -230,8 +290,8 @@ void CBoolFunction::generate(double possibleCombinations)
                 --maxPossiblLen;
         }
 
-        if (createComb.contains(bitComb))
-            continue;
+//        if (createComb.contains(bitComb))
+//            continue;
 
         addDis(decComb);
         lstBitComb << bitComb;
@@ -245,24 +305,24 @@ void CBoolFunction::generate(double possibleCombinations)
 
         // максимальное число комбинаций переменных в дизъюнктах
         // без учета всех требований булевой функции равно сумме числа сочетаний
-        TVVecd matrix(nXZ + 1,TVecd(nXZ + 1,0));
-        fillMatrixCombinations(matrix);
-        for (int k = lenDisMin(); k <= lenDisMax(); ++k)
-            possibleCombinations += matrix.at(nXZ).at(k);
+//        CCombinasion comb(nXZ);
+//        for (int k = m_lenDisMin; k <= m_lenDisMax; ++k)
+//            possibleCombinations += comb.numberCombinasion(k);
+        possibleCombinations = 1000000;
     }
 
     // diffMaxMin - используется для смещения диапозона
     // случайных чисел в границы [m_lenDisMin,m_lenDisMax]
     // +1  - для того что бы m_lenDisMax входил в диапозон
-    int diffMaxMin = lenDisMax() - lenDisMin() + 1;
+    int diffMaxMin = m_lenDisMax - m_lenDisMin + 1;
 
-    double numCreateComb = static_cast<double>(createComb.size());
+    ull_t numCreateComb = static_cast<ull_t>(createComb.size());
 
     while (numCreateComb < possibleCombinations && numDis() < numDisMax()) {
 
         // получаем случайное количество переменных
         // для нового дизъюнкта в пределах [m_lenDisMin,m_lenDisMax]
-        int rndVarDis = (qrand() % diffMaxMin ) + lenDisMin();
+        int rndVarDis = (qrand() % diffMaxMin ) + m_lenDisMin;
 
         // случайный номер переменной
         int rndVar = 0;
@@ -294,7 +354,7 @@ void CBoolFunction::generate(double possibleCombinations)
 
         createComb << bitComb;
 
-        numCreateComb = static_cast<double>(createComb.size());
+        numCreateComb = static_cast<ull_t>(createComb.size());
 
         // проверяем содержит ли комбинация противоположные переменные
         bool isConflict = false;
@@ -402,8 +462,8 @@ CBoolFunction::TParam CBoolFunction::param() const
     p.numX = m_numX;
     p.numZ = m_numZ;
     p.numDisMax = numDisMax();
-    p.lenDisMin = lenDisMin();
-    p.lenDisMax = lenDisMax();
+    p.lenDisMin = m_lenDisMin;
+    p.lenDisMax = m_lenDisMax;
 
     return p;
 }
@@ -432,21 +492,5 @@ inline void CBoolFunction::addDis(TLst &dis)
         m_var[x] << m_dis.size();
 
     m_dis << dis;
-}
-//-------------------------------------------------------------------
-
-
-void CBoolFunction:: fillMatrixCombinations(TVVecd &c)
-{
-    int n = c.size();
-
-    for(int i = 0; i < n; ++i) {
-
-       c[i][0] = 1;
-       c[i][i] = 1;
-
-       for(int j = 1; j < i; ++j)
-           c[i][j] = c[i-1][j-1] + c[i-1][j];
-    }
 }
 //-------------------------------------------------------------------

@@ -2,14 +2,13 @@
 #define CWIDGET_BF_VIEW_H
 
 #include <QWidget>
-#include <QMap>
 
 QT_BEGIN_NAMESPACE
-class CBFView;
+class CBoolFormula;
 class CToolBarHeader;
 class QAction;
 class QActionGroup;
-class QComboBox;
+class QLabel;
 class QTextEdit;
 QT_END_NAMESPACE
 
@@ -23,36 +22,61 @@ public:
 
 public slots:
 
-    void on_view(CBFView*);
-    void on_viewSat(CBFView*);
-    void on_remove(const QString&);
+    void on_set(const QString &name,CBoolFormula *bf);
+
+    void on_viewClaus();
+    void on_viewClausSort();
+    void on_viewDimacs();
+    void on_viewFormula();
+    void on_viewLits();
+    void on_viewLitsSort();
 
 private:
 
-    CToolBarHeader         *m_header;
+    CBoolFormula    *m_bf;
 
-    QComboBox       *m_combo;
-    QAction         *m_actView;
-    QAction         *m_actViewDIMACS;
-    QAction         *m_actViewDis;
-    QAction         *m_actViewDisSort;
-    QAction         *m_actViewVar;
-    QAction         *m_actViewVarSort;
+    CToolBarHeader  *m_header;
+
+    QLabel          *m_lableNameFormula;
+
+    QAction         *m_actViewFormula;
+    QAction         *m_actViewDimacs;
+    QAction         *m_actViewClaus;
+    QAction         *m_actViewClausSort;
+    QAction         *m_actViewLits;
+    QAction         *m_actViewLitsSort;
     QActionGroup    *m_groupActView;
 
     QAction         *m_actViewSat;
 
     QTextEdit       *m_edit;
 
-    typedef QMap<QString,CBFView*> TMapBF;
+    static const QString TableStyle;
+    static const QString BgColorC;
+    static const QString BgColorE;
+    static const QString BgColorF;
 
-    TMapBF m_bfv;
+           bool    checkViewFormula();
+    inline QString htmlLit(int lit) const;
+    inline QString htmlClaus(int claus) const;
 
 private slots:
+
+    void on_disconnect();
     void triggered_actHide();
-    void on_view(const QString&);
-    void on_view(bool);
-    void on_view();
+
+    void triggered_actViewFormula();
+    void triggered_actViewDimacs();
+    void triggered_actViewClaus();
+    void triggered_actViewClausSort();
+    void triggered_actViewLits();
+    void triggered_actViewLitsSort();
+
+signals:
+    void message(const QString &msg);
+    void setHtml(const QString &text);
+    void setText(const QString &text);
+    void triggered();
 };
 
 #endif // CWIDGET_BF_VIEW_H

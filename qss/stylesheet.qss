@@ -1,0 +1,132 @@
+CWidgetBFGenerate > QSpinBox {
+    font-size: 16px;
+}
+
+
+CWidgetBFGenerate > QLabel {
+    font-size: 16px;
+}
+
+
+CToolBarHeader {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #eee
+        stop:0.05 #bbb
+        stop:0.06 #888
+        stop:0.5 #555
+        stop:0.9 #555
+        stop: 1.0 #666
+    );
+    border-top: 1px solid #333;
+    font-size: 12px;
+}
+
+
+CToolBarHeader > QLineEdit {
+    font-size: 12px;
+    border-radius: 3px;
+}
+
+CToolBarHeader > QLabel {
+    color: white;
+    font-size: 12px;
+}
+
+
+CToolBarHeader > QToolButton:hover {
+    border: 0px;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #999
+        stop:0.5 #666
+        stop:0.9 #666
+        stop: 1.0 #777
+    );
+}
+
+
+CToolBarHeader > QToolButton:checked {
+    border: 1px solid #555;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #bbb
+        stop:0.5 #888
+        stop:0.9 #888
+        stop: 1.0 #999
+    );
+}
+
+
+CToolBarHeader > QComboBox {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #888
+        stop:0.5 #555
+        stop:0.9 #555
+        stop: 1.0 #666
+    );
+    border-radius: 3px;
+    color: White;
+    font-size: 12px;
+}
+
+CToolBarHeader > QComboBox:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #999
+        stop:0.5 #666
+        stop:0.9 #666
+        stop: 1.0 #777
+    );
+    border-radius: 0px;
+    color: White;
+}
+
+CToolBarHeader > QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 12px;
+    border-right: 1px solid #bbb;
+    background:none;
+}
+
+CToolBarHeader > QComboBox::down-arrow{
+    image: url(://ico/arrow_combo_box.png);
+    height: 12px;
+    width: 12px;
+}
+
+CWidgetPanelMode {
+    border-right: 1px;
+    border-style: solid;
+    border-color: #000;
+}
+
+QListView {
+    border: 0px;
+    font-size: 16px;
+}
+
+QPlainTextEdit {
+    border: 0px;
+}
+
+QSplitter::handle:vertical {
+    height: 1px;
+}
+
+QSplitter::handle:horizontal {
+    background: #333;
+    width: 0px;
+}
+
+QTextEdit{
+    border: 0px;
+}
+
+
+QTreeView{
+    border: 0px;
+    font-size: 16px;
+}
+
+QTreeWidget{
+    border: 0px;
+    font-size: 16px;
+}

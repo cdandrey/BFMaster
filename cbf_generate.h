@@ -13,18 +13,13 @@ class CBFGenerate : public QThread
     Q_OBJECT
 public:
 
-    explicit CBFGenerate(CBFView *bfv,QObject *parent = 0) :
-        QThread(parent),m_bfv(bfv),m_stopped(false){
+    typedef unsigned long long ull;
 
-        m_createDis = 0;
-        m_numDisMax = 0;
-        m_combinations = 0;
-        m_createCombinations = 0;
-    }
+    explicit CBFGenerate(CBFView *bfv,QObject *parent = 0);
 
-    TStr progress() const;
-    TStr progressFinished() const;
-    TStr progressDescription() const;
+    QString progress() const;
+    QString progressFinished() const;
+    QString progressDescription() const;
 
 public slots:
 
@@ -38,15 +33,13 @@ private:
                        const TByt &lessBitDis,
                        const TByt &mostBitDis);
 
-    void fillMatrixCombinations(TVVecd &c);
-
     CBFView *m_bfv;
     volatile bool m_stopped;
 
     int m_createDis;
     int m_numDisMax;
-    double m_combinations;
-    double m_createCombinations;
+    ull m_combinations;
+    ull m_createCombinations;
 
 signals:
 

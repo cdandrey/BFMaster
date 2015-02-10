@@ -2,18 +2,17 @@
 #define CWINDOW_MAIN_H
 
 #include <QMainWindow>
-#include "typedef.h"
 
 QT_BEGIN_NAMESPACE
-class CBoolFunction;
-class CBFGenerate;
-class CBFView;
+class CExecutObject;
+class CExecutThread;
+class CBoolFormula;
 class CSat;
 class CWidgetBFGenerate;
+class CWidgetBFList;
 class CWidgetBFView;
 class CWidgetConsol;
-class CWidgetControl;
-class CWidgetListBF;
+class CWidgetPanelMode;
 class CWidgetTreeSat;
 class QAction;
 class QMenu;
@@ -28,32 +27,15 @@ public:
     explicit CWindowMain(QWidget *parent = 0);
     ~CWindowMain();
 
-private:
+protected:
 
-    QAction             *m_actOpen;
-    QAction             *m_actSave;
-    QAction             *m_actSaveAs;
-    QMenu               *mainMenu;
-
-    CWidgetBFGenerate   *m_widgetBFGenerate;
-    CWidgetBFView       *m_widgetBFView;
-    CWidgetControl      *m_widgetControl;
-    CWidgetConsol       *m_widgetConsol;
-    CWidgetListBF       *m_widgetListBF;
-    CWidgetTreeSat      *m_widgetTreeSat;
-
-    CBFGenerate         *m_bfGenerate;
-    CSat                *m_sat;
-
-    int                 m_timerGenerate;
-    int                 m_timerRunSat;
-
-    void timerEvent(QTimerEvent *event);
+    virtual void closeEvent(QCloseEvent*);
+    virtual void timerEvent(QTimerEvent*);
 
 private slots:
 
-    void on_generateFinished();
-    void on_generateStarted(CBFView *bfv);
+    void on_executed(const QString &name,CBoolFormula *bf);
+    void on_finished();
 
     void on_satFinished();
     void on_satRun(const QString&);
@@ -63,13 +45,42 @@ private slots:
     void on_open();
     void on_save();
     void on_save_as();
-    void on_save(const TStr &fileName,CBFView *bfv);
+
+private:
+
+    void startExec();
+
+private:
+
+    CExecutObject       *m_executObject;
+    CExecutThread       *m_executThread;
+    int                  m_executTimer;
+
+    CWidgetBFGenerate   *m_widgetBFGenerate;
+    CWidgetBFList       *m_widgetBFList;
+    CWidgetBFView       *m_widgetBFView;
+    CWidgetConsol       *m_widgetConsol;
+    CWidgetPanelMode    *m_widgetPanelMode;
+    CWidgetTreeSat      *m_widgetTreeSat;
+
+    QAction             *m_actOpen;
+    QAction             *m_actSave;
+    QAction             *m_actSaveAs;
+    QMenu               *mainMenu;
+
+    CSat                *m_sat;
+
+    static const QString BFSuffix;
 
 signals:
 
-    void messageAppend(const QString&);
-    void messageSet(const QString&);
-    void executingOperation(const QString&);
+    void messageAppend(const QString &text);
+    void messageSet(const QString &text);
+    void executingOperation(const QString &text);
+
+    void append(const QString &name, CBoolFormula *bf);
+    void locked(bool);
+    void triggeredView();
 
 };
 

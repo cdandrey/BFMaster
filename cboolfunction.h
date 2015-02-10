@@ -7,6 +7,8 @@ class CBoolFunction
 {
 public:
 
+    typedef unsigned long long ull_t;
+
     typedef QSharedPointer<CBoolFunction> TSPtr;
 
     typedef struct CBoolFunctionParam {
@@ -35,16 +37,14 @@ public:
         init(p);
     }
 
-    CBoolFunction(const CBoolFunction &f);
-
     explicit CBoolFunction(const TLLst &cnf){
         init(cnf);
     }
 
-    const CBoolFunction& operator=(const CBoolFunction &rhs);
-
     void init(const CBoolFunction::TParam & p);
     void init(const TLLst &cnf);
+
+    void genBegin();
     
     int varNot(int x) const{
         return x < m_numX ? x + m_numX : x - m_numX;
@@ -54,7 +54,7 @@ public:
         return x < m_numX ? (x + 1) : (m_numX - x - 1);
     }
 
-    void generate(double possibleCombinations = 0);
+    void generate(ull_t possibleCombinations = 0);
     int multiply(int x,int &r_restNumDis,TStr &r_state,TLst &r_seq);
 
 
@@ -95,8 +95,6 @@ private:
                        const TByt &mostBitDis);
 
     inline void addDis(TLst &dis);
-
-    void fillMatrixCombinations(TVVecd &c);
 };
 
 #endif // CBOOLFUNCTION_H

@@ -4,7 +4,7 @@
 #include <QWidget>
 
 QT_BEGIN_NAMESPACE
-class CBFView;
+class CBoolFormula;
 class CToolBarHeader;
 class QLineEdit;
 class QAction;
@@ -16,20 +16,30 @@ class CWidgetBFGenerate : public QWidget
     Q_OBJECT
 
 public:
+
     explicit CWidgetBFGenerate(QWidget *parent = 0);
 
     QAction *actVisible(){return m_actVisible;}
 
 public slots:
 
-    void on_set(CBFView *bfv);
-    void on_locked();
-    void on_unlocked();
-    void on_generateLocked();
-    void on_generateUnlocked();
+    void on_set(const QString&,CBoolFormula*);
+    void on_locked(bool lock);
+    void on_toggleRemove();
+    void on_toggleTerminate();
+
+    void triggered_actNewName();
+    void triggered_actGenerate();
+    void triggered_actRegenerate();
+    void triggered_actRemove();
 
 private:
 
+    // data
+    CBoolFormula    *m_bf;
+    QString          m_name;
+
+    // gui
     CToolBarHeader  *m_header;
 
     QLineEdit       *m_lineName;
@@ -46,23 +56,16 @@ private:
     QSpinBox        *m_spinMin;
     QSpinBox        *m_spinMax;
 
-    CBFView         *m_bfv;
-
     QSpinBox* newSpin(int val = 0, int min = 0, int max = 100000);
 
-private slots:
-
-    void triggered_actGenerate();
-    void triggered_actRegenerate();
-    void triggered_actRemove();
-    void triggered_actNewName();
+    volatile bool m_isRemove;
 
 signals:
 
-    void generate(CBFView*);
+    void generate(const QString &name,CBoolFormula *bf);
+    void regenerate(const QString &name,CBoolFormula *bf);
     void remove(const QString&);
-    void remove(CBFView*);
-    void stopped();
+    void terminated();
 };
 
 #endif // CWIDGET_BF_GENERATE_H

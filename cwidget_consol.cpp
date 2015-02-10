@@ -11,18 +11,7 @@
 CWidgetConsol::CWidgetConsol(QWidget *parent) :
     QWidget(parent)
 {
-    setStyleSheet("QPlainTextEdit {border: 0px solid #000;"
-                                  "border-width: 0px 0px 0px 1px;}");
-
     m_header = new CToolBarHeader(tr("Консоль"));
-    m_header->setStyleSheet("QToolBar {background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #999, stop:1.0 #555);"
-                                      "border: 0px solid #000;"
-                                      "border-width: 1px 0px 1px 1px;}"
-                            "QLabel   {color: white; font-size: 12px;}"
-                            "QToolButton:hover {"
-                            "border: 0px;"
-                            "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #bbb, stop:1.0 #777);}"
-                            );
 
     m_header->insertStretch(m_header->actHint());
 
@@ -55,6 +44,7 @@ CWidgetConsol::CWidgetConsol(QWidget *parent) :
 
 void CWidgetConsol::messageAppend(const QString &message)
 {
+    this->setVisible(true);
     m_edit->appendPlainText(message);
 }
 //------------------------------------------------------------------
@@ -62,6 +52,7 @@ void CWidgetConsol::messageAppend(const QString &message)
 
 void CWidgetConsol::messageSet(const QString &message)
 {
+    this->setVisible(true);
     m_edit->setPlainText(message);
 }
 //------------------------------------------------------------------

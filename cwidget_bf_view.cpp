@@ -1,80 +1,74 @@
 #include "cwidget_bf_view.h"
+#include "cbool_formula.h"
+#include "ctoolbar_header.h"
 
 #include <QAction>
 #include <QActionGroup>
 #include <QComboBox>
+#include <QLabel>
 #include <QPlainTextEdit>
 #include <QTextEdit>
 #include <QVBoxLayout>
 
-#include "ctoolbar_header.h"
-#include "cbf_view.h"
+const QString CWidgetBFView::TableStyle("cellspacing = '3' "
+                           "cellpadding = '5' "
+                           "border = '0' "
+                           "style = 'border-style:solid;'");
+
+const QString CWidgetBFView::BgColorC("bgcolor = '#cccccc'");
+const QString CWidgetBFView::BgColorE("bgcolor = '#eeeeee'");
+const QString CWidgetBFView::BgColorF("bgcolor = '#ffffff'");
 
 CWidgetBFView::CWidgetBFView(QWidget *parent) :
-    QWidget(parent)
+    QWidget(parent),
+    m_bf(NULL)
 {
-    setStyleSheet("QTextEdit {border: 0px;}");
-
     m_header = new CToolBarHeader();
 
-    m_combo = new QComboBox();
-    m_combo->setFixedHeight(m_header->minimumHeight() - 2);
-    m_combo->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Preferred);
-    m_combo->setStyleSheet("QComboBox {"
-                                "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #999, stop:1.0 #555);"
-                                "border-radius: 0px;"
-                                "color: #fff;}"
-                          "QComboBox:hover {"
-                                "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #bbb, stop:1.0 #777);"
-                                "border-radius: 0px;"
-                                "color: #fff;"
-                                "}"
-                          "QComboBox::drop-down {"
-                                "subcontrol-origin: padding;"
-                                "subcontrol-position: top right;"
-                                "width: 12px; "
-                                "border-left-width: 0px;"
-                                "border-left-color: #ccc;"
-                                "border-left-style: solid;"
-                                "border-top-right-radius: 3px;"
-                                "border-bottom-right-radius: 3px;"
-                                "}"
-                           "QComboBox::down-arrow {"
-                                "image: url(:/ico/arrow_combo_box.png);"
-                                "width: 12;"
-                                "height: 12;"
-                                "}"
-    );
+    m_lableNameFormula = new QLabel(tr("<нет функции>"),this);
+    m_lableNameFormula->setFixedHeight(m_header->minimumHeight());
+    m_lableNameFormula->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Preferred);
 
-    m_actView = new QAction(QIcon(":/ico/bf_view.png"),CBFView::descriptView,this);
-    m_actViewDIMACS = new QAction(QIcon(":/ico/bf_viewdimacs.png"),CBFView::descriptViewDIMACS,this);
-    m_actViewDis = new QAction(QIcon(":/ico/bf_viewdis.png"),CBFView::descriptViewDis,this);
-    m_actViewDisSort = new QAction(QIcon(":/ico/bf_viewdissort.png"),CBFView::descriptViewDisSort,this);
-    m_actViewVar = new QAction(QIcon(":/ico/bf_viewvar.png"),CBFView::descriptViewVar,this);
-    m_actViewVarSort = new QAction(QIcon(":/ico/bf_viewvarsort.png"),CBFView::descriptViewVarSort,this);
+    m_actViewFormula = new QAction(QIcon("://ico/bf_view.png"),
+                                   tr("Общая информация функции"),this);
+
+    m_actViewDimacs = new QAction(QIcon("://ico/bf_viewdimacs.png"),
+                                  tr("Представление функции в формате DIMACS"),this);
+
+    m_actViewClaus = new QAction(QIcon("://ico/bf_viewdis.png"),
+                                 tr("Список дизъюнктов функции"),this);
+
+    m_actViewClausSort = new QAction(QIcon(":/ico/bf_viewdissort.png"),
+                                     tr("Упорядоченный список дизъюнктов функции"),this);
+
+    m_actViewLits = new QAction(QIcon("://ico/bf_viewvar.png"),
+                                tr("Список переменных функции"),this);
+
+    m_actViewLitsSort = new QAction(QIcon("://ico/bf_viewvarsort.png"),
+                                    tr("Упорядоченный список переменных функции"),this);
 
     m_groupActView = new QActionGroup(this);
-    m_groupActView->addAction(m_actView);
-    m_groupActView->addAction(m_actViewDIMACS);
-    m_groupActView->addAction(m_actViewDis);
-    m_groupActView->addAction(m_actViewDisSort);
-    m_groupActView->addAction(m_actViewVar);
-    m_groupActView->addAction(m_actViewVarSort);
+    m_groupActView->addAction(m_actViewFormula);
+    m_groupActView->addAction(m_actViewDimacs);
+    m_groupActView->addAction(m_actViewClaus);
+    m_groupActView->addAction(m_actViewClausSort);
+    m_groupActView->addAction(m_actViewLits);
+    m_groupActView->addAction(m_actViewLitsSort);
 
     m_actViewSat = new QAction(QIcon(":/ico/bf_viewsat_add.png"),tr("Отображать общий отчет решения SAT"),this);
 
-    m_actView->setCheckable(true);
-    m_actViewDIMACS->setCheckable(true);
-    m_actViewDis->setCheckable(true);
-    m_actViewDisSort->setCheckable(true);
-    m_actViewVar->setCheckable(true);
-    m_actViewVarSort->setCheckable(true);
+    m_actViewFormula->setCheckable(true);
+    m_actViewDimacs->setCheckable(true);
+    m_actViewClaus->setCheckable(true);
+    m_actViewClausSort->setCheckable(true);
+    m_actViewLits->setCheckable(true);
+    m_actViewLitsSort->setCheckable(true);
     m_actViewSat->setCheckable(true);
 
-    m_actView->setChecked(true);
+    m_actViewFormula->setChecked(true);
     m_actViewSat->setChecked(true);
 
-    m_header->insertWidget(m_header->actHint(),m_combo);
+    m_header->insertWidget(m_header->actHint(),m_lableNameFormula);
     m_header->insertSpace(m_header->actHint(),16);
     m_header->insertActions(m_header->actHint(),m_groupActView->actions());
     m_header->insertAction(m_header->actHint(),m_actViewSat);
@@ -84,6 +78,7 @@ CWidgetBFView::CWidgetBFView(QWidget *parent) :
     m_edit->setFont(QFont("Arial",12));
     m_edit->setReadOnly(true);
     m_edit->document()->setDocumentMargin(10);
+    m_edit->setEnabled(m_bf != NULL);
 
     QVBoxLayout *vbox = new QVBoxLayout();
     vbox->setMargin(0);
@@ -94,139 +89,437 @@ CWidgetBFView::CWidgetBFView(QWidget *parent) :
     vbox->addWidget(m_edit);
     vbox->setStretch(1,100);
 
-    on_view(m_combo->currentText());
-
     connect(m_header->actHint(),SIGNAL(triggered()),this,SLOT(triggered_actHide()));
-    connect(m_actView,SIGNAL(toggled(bool)),this,SLOT(on_view(bool)));
-    connect(m_actViewDIMACS,SIGNAL(toggled(bool)),this,SLOT(on_view(bool)));
-    connect(m_actViewDis,SIGNAL(toggled(bool)),this,SLOT(on_view(bool)));
-    connect(m_actViewDisSort,SIGNAL(toggled(bool)),this,SLOT(on_view(bool)));
-    connect(m_actViewVar,SIGNAL(toggled(bool)),this,SLOT(on_view(bool)));
-    connect(m_actViewVarSort,SIGNAL(toggled(bool)),this,SLOT(on_view(bool)));
-    connect(m_actViewSat,SIGNAL(toggled(bool)),this,SLOT(on_view()));
-    connect(m_combo,SIGNAL(currentTextChanged(QString)),this,SLOT(on_view(QString)));
+    connect(m_actViewFormula,SIGNAL(toggled(bool)),this,SLOT(triggered_actViewFormula()));
+    connect(m_actViewDimacs,SIGNAL(toggled(bool)),this,SLOT(triggered_actViewDimacs()));
+    connect(m_actViewClaus,SIGNAL(toggled(bool)),this,SLOT(triggered_actViewClaus()));
+    connect(m_actViewClausSort,SIGNAL(toggled(bool)),this,SLOT(triggered_actViewClausSort()));
+    connect(m_actViewLits,SIGNAL(toggled(bool)),this,SLOT(triggered_actViewLits()));
+    connect(m_actViewLitsSort,SIGNAL(toggled(bool)),this,SLOT(triggered_actViewLitsSort()));
+    connect(this,SIGNAL(triggered()),this,SLOT(on_viewFormula()));
+
+    connect(this,SIGNAL(setHtml(QString)),m_edit,SLOT(setHtml(QString)));
+    connect(this,SIGNAL(setText(QString)),m_edit,SLOT(setPlainText(QString)));
 }
 //------------------------------------------------------------------
 
 
-void CWidgetBFView::on_view(CBFView *bfv)
+void CWidgetBFView::on_set(const QString &name, CBoolFormula *bf)
 {
-    if (!bfv) {
-        on_view(m_combo->currentText());
-        return;
-    }
+    m_lableNameFormula->setText(name);
+    m_bf = bf;
 
-    TStr name = bfv->boolFunctionName();
-    if (name.isEmpty()){
-        on_view(m_combo->currentText());
-        return;
-    }
-
-    if (m_combo->count() == 0) {
-        m_bfv.insert(name,bfv);
-        m_combo->addItem(name);
-        m_edit->setVisible(true);
-        m_groupActView->setEnabled(true);
-        m_actViewSat->setEnabled(true);
-    } else if (m_combo->findText(name) != -1) {
-        m_bfv[name] = bfv;
-        bool isUpdate = name == m_combo->currentText() ? true : false;
-        m_combo->setCurrentText(name);
-        if (isUpdate)
-            on_view(name);
+    if (m_bf != NULL) {
+        m_edit->setEnabled(true);
+        emit triggered();
     } else {
-        m_bfv.insert(name,bfv);
-        m_combo->addItem(name);
-        m_combo->setCurrentText(name);
+        m_edit->clear();
+        m_edit->setEnabled(false);
     }
 }
 //------------------------------------------------------------------
 
 
-void CWidgetBFView::on_viewSat(CBFView *bfv)
+void CWidgetBFView::on_viewClaus()
 {
-    m_actView->setChecked(true);
-    m_actViewSat->setChecked(true);
-    on_view(bfv);
+    if (!checkViewFormula())
+        return;
+
+    int num = m_bf->numClaus();
+    int numView = num > 1000 ? 1000 : num; // количество отображаемых дизьюнктов
+
+    QString html("");
+
+    if (numView < num)
+        html = QObject::tr("<p><i> Функция большая"
+             ", выводится только первые тысячу дизьюнктов</i></p>");
+
+    html += QString("<table %1 width='100%'>").arg(TableStyle);
+    html += QString("<tr><td colspan = '3'>%1</td></tr><tr>&nbsp;</tr>")
+            .arg(m_actViewClaus->toolTip());
+
+    QString trPattern("<tr><td width='3%'>%1</td><td %2 width='7%'><b>%3</b> (%4)</td><td %5>");
+    QString trColor(BgColorE);
+    for (int i = 0; i < numView; ++i) {
+
+        html += trPattern.arg(i + 1).arg(BgColorC).arg(htmlClaus(i + 1))
+                 .arg(m_bf->claus().at(i).size()).arg(trColor);
+
+        foreach (int lit, m_bf->claus().at(i))
+            html += QString("%1 ").arg(htmlLit(lit));
+
+        html += "</td></tr>";
+
+        trColor = (trColor == BgColorE) ? BgColorF : BgColorE;
+    }
+
+    html += "</table>";
+
+    emit setHtml(html);
 }
 //------------------------------------------------------------------
 
 
-void CWidgetBFView::on_remove(const QString &name)
+void CWidgetBFView::on_viewClausSort()
 {
-    m_bfv.remove(name);
-    m_combo->removeItem(m_combo->findText(name));
+    if (!checkViewFormula())
+        return;
+
+    // сортируем список дизьюнктов в порядке возростяния
+    // числа литералов которые они содержат
+    int maxSize = m_bf->numLenClaus(false);
+
+    QList<QList<int> > sizes;
+    for (int i = 0; i <= maxSize; ++i)
+        sizes << QList<int>();
+
+    for (int i = 0; i < m_bf->claus().size(); ++i)
+        sizes[m_bf->claus().at(i).size()] << i;
+
+    QList<int> lstClausSort;
+    foreach (QList<int> lst, sizes)
+        foreach (int iClaus, lst)
+            lstClausSort << iClaus;
+
+    // формируем вывод списка дизьюнктов
+
+    int num = m_bf->numClaus();
+    int numView = num > 1000 ? 1000 : num; // количество отображаемых дизьюнктов
+
+    QString html = "";
+
+    if (numView < num)
+        html = tr("<p><i> Функция большая"
+             ", выводится только первые тысячу дизьюнктов</i></p>");
+
+    html += QString("<table %1 width='100%'>").arg(TableStyle);
+    html += QString("<tr><td colspan = '3'>%1</td></tr><tr>&nbsp;</tr>")
+            .arg(m_actViewClausSort->toolTip());
+
+    QString trPattern("<tr><td  width='3%'>%1</td><td %2 width='7%'><b>%3</b> (%4)</td><td %5>");
+    QString trColor(BgColorE);
+    for (int i = 0; i < numView; ++i) {
+
+        int iCls = lstClausSort.at(i);
+
+        html += trPattern.arg(i + 1).arg(BgColorC).arg(htmlClaus(iCls + 1))
+                    .arg(m_bf->claus().at(iCls).size()).arg(trColor);
+
+        foreach (int lit, m_bf->claus().at(iCls))
+            html += QString("%1 ").arg(htmlLit(lit));
+
+        html += "</td></tr>";
+
+        trColor = (trColor == BgColorE) ? BgColorF : BgColorE;
+    }
+
+    html += "</table>";
+
+    emit setHtml(html);
+}
+//------------------------------------------------------------------
+
+
+void CWidgetBFView::on_viewDimacs()
+{
+    if (!checkViewFormula())
+        return;
+
+    emit setText(QString("%1\n\n%2")
+                 .arg(m_actViewDimacs->toolTip())
+                 .arg(m_bf->dimacs()));
+}
+//------------------------------------------------------------------
+
+
+void CWidgetBFView::on_viewFormula()
+{
+    if (!checkViewFormula())
+        return;
+
+    QString html("");
+
+    html.append(QString("<table %1>").arg(TableStyle));
+    html.append(QString("<tr><td colspan = '2'>%1</td></tr><tr>&nbsp;</tr>")
+                .arg(m_actViewFormula->toolTip()));
+
+    html.append(QString("<tr><td %1><b>%2</b></td><td %3>%4</td></tr>")
+                .arg(BgColorC).arg(tr("Имя функции"))
+                .arg(BgColorE).arg(m_lableNameFormula->text()));
+
+    html.append(QString("<tr><td %1><b>%2</b></td><td %3>%4</td></tr>")
+                .arg(BgColorC).arg(tr("Количество переменных"))
+                .arg(BgColorE).arg(m_bf->numLit(true)));
+
+    html.append(QString("<tr><td %1><b>%2</b></td><td %3>%4</td></tr>")
+                .arg(BgColorC).arg(tr("Количество противоположных переменных"))
+                .arg(BgColorE).arg(m_bf->numLit(false)));
+
+    html.append(QString("<tr><td %1><b>%2</b></td><td %3>%4</td></tr>")
+                .arg(BgColorC).arg(tr("Количество дизьюнктов"))
+                .arg(BgColorE).arg(m_bf->numClaus()));
+
+    html.append(QString("<tr><td %1><b>%2</b></td><td %3>%4</td></tr>")
+                .arg(BgColorC).arg(tr("Минимальное количество переменных в дизьюнкте"))
+                .arg(BgColorE).arg(m_bf->numLenClaus(true)));
+
+    html.append(QString("<tr><td %1><b>%2</b></td><td %3>%4</td></tr>")
+                .arg(BgColorC).arg(tr("Максимальное количество переменных в дизьюнкте"))
+                .arg(BgColorE).arg(m_bf->numLenClaus(false)));
+
+    html.append("</table>");
+
+    emit setHtml(html);
+}
+//------------------------------------------------------------------
+
+
+void CWidgetBFView::on_viewLits()
+{
+    if (!checkViewFormula())
+        return;
+
+    int num = m_bf->numLit(true);
+    QList<int> lstLit(m_bf->lits().keys());
+    int numView = num > 100 ? 100 : lstLit.size(); // количество отображаемых переменных
+
+    QString html = "";
+
+    if (numView < num)
+        html = tr("<p><i> Функция большая"
+             ", выводится только первые сто переменных</i></p>");
+
+    html += QString("<table %1 width='100%'>").arg(TableStyle);
+    html += QString("<tr><td colspan = '3'>%1</td></tr><tr>&nbsp;</tr>")
+            .arg(m_actViewLits->toolTip());
+
+    int i = 1;
+    QString trPattern("<tr><td  width='3%'>%1</td><td %2 width='7%'><b>%3 </b>(%4)</td><td %5>");
+    QString trColor(BgColorE);
+    foreach (int lit, lstLit) {
+
+        if (lit < 0)
+            continue;
+
+        // выводим i-й литерал
+        html += trPattern.arg(i).arg(BgColorC).arg(htmlLit(lit))
+                         .arg(m_bf->lits().value(lit).size()).arg(trColor);
+
+        foreach (int d, m_bf->lits().value(lit))
+            html += QString("%1 ").arg(htmlClaus(d + 1));
+
+        html += "</td></tr>";
+
+        // выводим литерал противоположный i-му если он существует
+        int notLit = -lit;
+        if (m_bf->lits().find(notLit) != m_bf->lits().end()) {
+            ++i;
+            html += trPattern.arg(i).arg(BgColorC).arg(htmlLit(notLit))
+                             .arg(m_bf->lits().value(notLit).size()).arg(trColor);
+
+            foreach (int d, m_bf->lits().value(notLit))
+                html += QString("%1 ").arg(htmlClaus(d + 1));
+
+            html += "</td></tr>";
+        }
+
+        if (i >= numView)
+            break;
+
+        ++i;
+        trColor = (trColor == BgColorE) ? BgColorF : BgColorE;
+    }
+
+    html += "</table>";
+
+    emit setHtml(html);
+}
+//------------------------------------------------------------------
+
+
+void CWidgetBFView::on_viewLitsSort()
+{
+    if (!checkViewFormula())
+        return;
+
+    // сортируем список литералов в порядке возростяния
+    // числа дизьюнктов в которых они содержатся
+    int maxSize = 0;
+    QList<int> lstLit(m_bf->lits().keys());
+    foreach (int lit, lstLit)
+        if (maxSize < m_bf->lits().value(lit).size())
+            maxSize = m_bf->lits().value(lit).size();
+
+    QList<QList<int> > maskLitSize;
+    for (int i = 0; i <= maxSize; ++i)
+        maskLitSize << QList<int>();
+
+    int numNot = m_bf->numLit(false);
+    for (int i = numNot; i < lstLit.size(); ++i)    // перебираем положительные литералы
+        maskLitSize[m_bf->lits().value(lstLit.at(i)).size()] << lstLit.at(i);
+    for (int i = numNot - 1; i >= 0; --i)            // перебираем отрицательные литералы
+        maskLitSize[m_bf->lits().value(lstLit.at(i)).size()] << lstLit.at(i);
+
+    QList<int> lstLitSort;
+    foreach (QList<int> lst, maskLitSize)
+        foreach (int lit, lst)
+            lstLitSort << lit;
+
+    // формируем вывод списка литералов
+    int num = m_bf->numLit(true);
+    int numView = num > 100 ? 100 : lstLitSort.size(); // количество выводимых литералов
+
+    QString html("");
+
+    if (numView < num)
+        html = tr("<p><i> Функция большая"
+             ", выводится только первые сто переменных</i></p>");
+
+    html += QString("<table %1 width='100%'>").arg(TableStyle);
+    html += QString("<tr><td colspan = '3'>%1</td></tr><tr>&nbsp;</tr>")
+            .arg(m_actViewLitsSort->toolTip());
+
+    QString trPattern("<tr><td  width='3%'>%1</td><td %2 width='7%'><b>%3 </b>(%4)</td><td %5>");
+    QString trColor(BgColorE);
+
+    for (int i = 0; i < numView; ++i) {
+
+        int lit = lstLitSort.at(i);
+
+        html += trPattern.arg(i + 1).arg(BgColorC).arg(htmlLit(lit))
+                    .arg(m_bf->lits().value(lit).size()).arg(trColor);
+
+        foreach (int d, m_bf->lits().value(lit))
+            html += QString("%1 ").arg(htmlClaus(d + 1));
+
+        html += "</td></tr>";
+
+        trColor = (trColor == BgColorE) ? BgColorF : BgColorE;
+    }
+
+    html += "</table>";
+
+    emit setHtml(html);
+}
+//------------------------------------------------------------------
+
+
+bool CWidgetBFView::checkViewFormula()
+{
+    if (m_bf != NULL ) {
+        if (m_bf->isCreate()) {
+            m_edit->setEnabled(true);
+            return true;
+        } else {
+            emit message(tr("%1 - функция не создана.")
+                         .arg(m_lableNameFormula->text()));
+            m_bf = NULL;
+            m_lableNameFormula->setText(tr("<нет функции>"));
+        }
+    }
+
+    m_edit->clear();
+    m_edit->setEnabled(false);
+    return false;
+}
+//------------------------------------------------------------------
+
+
+inline QString CWidgetBFView::htmlLit(int lit) const
+{
+    return (lit > 0) ? QString("%1<sub>%2</sub>")
+                        .arg(CBoolFormula::ChPos).arg(lit) :
+                       QString("%1<sub>%2</sub>")
+                       .arg(CBoolFormula::ChNeg).arg(qAbs(lit));
+}
+//------------------------------------------------------------------
+
+
+inline QString CWidgetBFView::htmlClaus(int claus) const
+{
+    return QString("C<sub>%1</sub>").arg(claus);
+}
+//------------------------------------------------------------------
+
+
+void CWidgetBFView::on_disconnect()
+{
+    disconnect(this,SIGNAL(triggered()),this,SLOT(on_viewClaus()));
+    disconnect(this,SIGNAL(triggered()),this,SLOT(on_viewClausSort()));
+    disconnect(this,SIGNAL(triggered()),this,SLOT(on_viewDimacs()));
+    disconnect(this,SIGNAL(triggered()),this,SLOT(on_viewFormula()));
+    disconnect(this,SIGNAL(triggered()),this,SLOT(on_viewLits()));
+    disconnect(this,SIGNAL(triggered()),this,SLOT(on_viewLitsSort()));
 }
 //------------------------------------------------------------------
 
 
 void CWidgetBFView::triggered_actHide()
 {
-    on_remove(m_combo->currentText());
+    m_lableNameFormula->setText(tr("<нет функции>"));
+    m_bf = NULL;
+    m_edit->clear();
+    m_edit->setEnabled(false);
 }
 //------------------------------------------------------------------
 
 
-void CWidgetBFView::on_view(const QString &name)
+void CWidgetBFView::triggered_actViewFormula()
 {
-    if (m_bfv.find(name) == m_bfv.end()) {
-        m_edit->clear();
-        m_edit->setVisible(false);
-        m_groupActView->setEnabled(false);
-        m_actViewSat->setEnabled(false);
-        return;
-    }
+    on_disconnect();
+    connect(this,SIGNAL(triggered()),this,SLOT(on_viewFormula()));
 
-    TStr html = "";
-
-    if (m_actView->isChecked()) {
-        html += m_bfv[name]->view();
-        html += "<p>&nbsp;</p>";
-    }
-
-    if (m_actViewSat->isChecked()) {
-        html += m_bfv[name]->viewSat();
-        html += "<p>&nbsp;</p>";
-    }
-
-    if (m_actViewDIMACS->isChecked()){
-
-        m_edit->setPlainText(m_bfv[name]->viewDIMACS());
-        return;
-
-    } else if (m_actViewDis->isChecked()){
-
-        html += m_bfv[name]->viewDis();
-
-    } else if (m_actViewDisSort->isChecked()){
-
-        html += m_bfv[name]->viewDisSort();
-
-    } else if (m_actViewVar->isChecked()) {
-
-        html += m_bfv[name]->viewVar();
-
-    } else if (m_actViewVarSort->isChecked()) {
-
-        html += m_bfv[name]->viewVarSort();
-    }
-
-    m_edit->setHtml(html);
+    emit triggered();
 }
 //------------------------------------------------------------------
 
 
-void CWidgetBFView::on_view(bool toggel)
+void CWidgetBFView::triggered_actViewDimacs()
 {
-    if (toggel)
-        on_view(m_combo->currentText());
+    on_disconnect();
+    connect(this,SIGNAL(triggered()),this,SLOT(on_viewDimacs()));
+
+    emit triggered();
 }
 //------------------------------------------------------------------
 
 
-void CWidgetBFView::on_view()
+void CWidgetBFView::triggered_actViewClaus()
 {
-    on_view(m_combo->currentText());
+    on_disconnect();
+    connect(this,SIGNAL(triggered()),this,SLOT(on_viewClaus()));
+
+    emit triggered();
+}
+//------------------------------------------------------------------
+
+
+void CWidgetBFView::triggered_actViewClausSort()
+{
+    on_disconnect();
+    connect(this,SIGNAL(triggered()),this,SLOT(on_viewClausSort()));
+
+    emit triggered();
+}
+//------------------------------------------------------------------
+
+
+void CWidgetBFView::triggered_actViewLits()
+{
+    on_disconnect();
+    connect(this,SIGNAL(triggered()),this,SLOT(on_viewLits()));
+
+    emit triggered();
+}
+//------------------------------------------------------------------
+
+
+void CWidgetBFView::triggered_actViewLitsSort()
+{
+    on_disconnect();
+    connect(this,SIGNAL(triggered()),this,SLOT(on_viewLitsSort()));
+
+    emit triggered();
 }
 //------------------------------------------------------------------
 
