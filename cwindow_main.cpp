@@ -29,9 +29,7 @@ const QString CWindowMain::BFSuffix("bf");
 
 CWindowMain::CWindowMain(QWidget *parent)
     : QMainWindow(parent),
-      m_executObject(NULL),
-      m_executThread(NULL),
-      m_executTimer(0)
+      m_executThread(NULL)
 {
     m_widgetBFGenerate  = new CWidgetBFGenerate(this);
     m_widgetBFList      = new CWidgetBFList(this);
@@ -102,9 +100,7 @@ CWindowMain::CWindowMain(QWidget *parent)
 
     // m_widgetPanelMode
     connect(m_widgetPanelMode,SIGNAL(triggeredRun()),
-            this,SLOT(on_satCheckedRun()));
-    connect(m_widgetPanelMode,SIGNAL(triggeredRunLog()),
-            this,SLOT(on_satCheckedRunLog()));
+            m_widgetTreeSat,SLOT(on_runChecked()));
 
     connect(m_widgetPanelMode,SIGNAL(toggledRand(bool)),
             m_widgetBFList,SLOT(setVisible(bool)));
@@ -127,12 +123,15 @@ CWindowMain::CWindowMain(QWidget *parent)
     connect(m_widgetBFView,SIGNAL(message(QString)),
             this,SIGNAL(messageAppend(QString)));
 
-    connect(this,SIGNAL(triggeredView()),
-            m_widgetBFView,SIGNAL(triggered()));
-
     // m_widgetBFList
+    connect(m_widgetBFList,SIGNAL(generate()),
+            m_widgetBFGenerate,SLOT(on_generate()));
+
     connect(m_widgetBFList,SIGNAL(selected(QString,CBoolFormula*)),
             m_widgetBFGenerate,SLOT(on_set(QString,CBoolFormula*)));
+
+    connect(m_widgetBFList,SIGNAL(selected(QString,CBoolFormula*)),
+            m_widgetTreeSat,SLOT(on_set(QString,CBoolFormula*)));
 
     connect(m_widgetBFList,SIGNAL(message(QString)),
             this,SIGNAL(messageAppend(QString)));
@@ -141,21 +140,21 @@ CWindowMain::CWindowMain(QWidget *parent)
             m_widgetBFView,SLOT(on_set(QString,CBoolFormula*)));
 
     // m_widgetBFGenerate
-    connect(m_widgetBFGenerate,SIGNAL(generate(QString,CBoolFormula*)),
-            m_widgetBFList,SIGNAL(append(QString,CBoolFormula*)));
+    connect(m_widgetBFGenerate,SIGNAL(append(QString,CBoolFormula*)),
+            m_widgetBFList,SIGNAL(appendgen(QString,CBoolFormula*)));
 
-    connect(m_widgetBFGenerate,SIGNAL(generate(QString,CBoolFormula*)),
-            this,SLOT(on_executed(QString,CBoolFormula*)));
+    connect(m_widgetBFGenerate,SIGNAL(replace(QString,CBoolFormula*)),
+            m_widgetBFList,SIGNAL(replace(QString,CBoolFormula*)));
 
-    connect(m_widgetBFGenerate,SIGNAL(regenerate(QString,CBoolFormula*)),
-            this,SLOT(on_executed(QString,CBoolFormula*)));
+    connect(m_widgetBFGenerate,SIGNAL(execut(CExecutObject*)),
+            this,SLOT(on_execut(CExecutObject*)));
 
     connect(m_widgetBFGenerate,SIGNAL(remove(QString)),
             m_widgetBFList,SIGNAL(remove(QString)));
 
     // m_widgetTreeSat
-    connect(m_widgetTreeSat,SIGNAL(run(QString)),
-            this,SLOT(on_satRun(QString)));
+    connect(m_widgetTreeSat,SIGNAL(execut(QQueue<CExecutObject*>)),
+            this,SLOT(on_execut(QQueue<CExecutObject*>)));
 
     // main
     connect(this,SIGNAL(messageAppend(QString)),
@@ -170,8 +169,17 @@ CWindowMain::CWindowMain(QWidget *parent)
     connect(this,SIGNAL(append(QString,CBoolFormula*)),
             m_widgetBFList,SIGNAL(append(QString,CBoolFormula*)));
 
+    connect(this,SIGNAL(updateView()),
+            m_widgetBFView,SIGNAL(triggered()));
+
     connect(this,SIGNAL(locked(bool)),
             m_widgetBFGenerate,SLOT(on_locked(bool)));
+
+    connect(this,SIGNAL(locked(bool)),
+            m_widgetBFList,SLOT(setEnabled(bool)));
+
+    connect(this,SIGNAL(locked(bool)),
+            m_widgetTreeSat,SLOT(setEnabled(bool)));
 
     m_widgetPanelMode->on_checkedRand();
 }
@@ -180,35 +188,20 @@ CWindowMain::CWindowMain(QWidget *parent)
 
 CWindowMain::~CWindowMain()
 {
-    if (m_executObject != NULL)
-        delete m_executObject;
-
-    if (m_executThread != NULL)
+    if (m_executThread)
         delete m_executThread;
-
-    delete m_widgetBFGenerate;
-    delete m_widgetBFList;
-    delete m_widgetBFView;
-    delete m_widgetConsol;
-    delete m_widgetPanelMode;
-    delete m_widgetTreeSat;
-
-    m_actOpen->~QAction();
-    m_actSave->~QAction();
-    m_actSaveAs->~QAction();
-    mainMenu->~QMenu();
 }
 //-------------------------------------------------------------------
 
 
 void CWindowMain::closeEvent(QCloseEvent *e)
 {
-    if (m_executObject != NULL && m_executThread != NULL) {
+    if (m_executThread) {
 
         int btn = QMessageBox::warning(this,this->windowTitle(),
                                        tr("Приложение выполняет операцию: %1\n\n"
                                           "Прервать операцию и закрыть приложение?")
-                                        .arg(m_executObject->progressDescription()),
+                                        .arg("m_executObject->progressDescription()"),
                                        QMessageBox::Yes,
                                        QMessageBox::No,
                                        QMessageBox::Cancel);
@@ -226,24 +219,62 @@ void CWindowMain::closeEvent(QCloseEvent *e)
 //-------------------------------------------------------------------
 
 
-void CWindowMain::on_executed(const QString &name,CBoolFormula *bf)
+void CWindowMain::on_execut(CExecutObject *obj)
 {
-    if (m_executObject != NULL || m_executThread != NULL)
-        return;
+    if (!obj->isNullObject() && m_executThread == NULL) {
 
-    m_executObject = new CExecutGenerateFormula(name,bf);
-    m_executThread = new CExecutThread(this,m_executObject);
+        m_executThread = new CExecutThread(this,obj);
 
-    connect(m_widgetBFGenerate,SIGNAL(terminated()),
-            m_executThread,SLOT(on_terminated()));
+        connect(m_executThread,SIGNAL(executOperation(QString)),
+                m_widgetConsol,SLOT(executingOperation(QString)));
 
-    connect(m_executThread,SIGNAL(finished()),
-            m_widgetBFGenerate,SLOT(on_toggleRemove()));
+        connect(m_executThread,SIGNAL(message(QString)),
+                m_widgetConsol,SLOT(messageAppend(QString)));
 
-    connect(m_executThread,SIGNAL(finished()),
-            this,SLOT(on_finished()));
+        connect(m_widgetBFGenerate,SIGNAL(terminated()),
+                m_executThread,SLOT(on_terminated()));
 
-    startExec();
+        connect(m_executThread,SIGNAL(finished()),
+                m_widgetBFGenerate,SLOT(on_toggleRemove()));
+
+        connect(m_executThread,SIGNAL(finished()),
+                this,SLOT(on_finished()));
+
+        emit locked(false);
+
+        m_executTimer = startTimer(100);
+        m_executThread->start();
+    }
+}
+//------------------------------------------------------------------
+
+
+void CWindowMain::on_execut(const QQueue<CExecutObject *> &queobj)
+{
+    if (!queobj.isEmpty() && m_executThread == NULL) {
+
+        m_executThread = new CExecutThread(this,queobj);
+
+        connect(m_executThread,SIGNAL(executOperation(QString)),
+                m_widgetConsol,SLOT(executingOperation(QString)));
+
+        connect(m_executThread,SIGNAL(message(QString)),
+                m_widgetConsol,SLOT(messageAppend(QString)));
+
+        connect(m_widgetBFGenerate,SIGNAL(terminated()),
+                m_executThread,SLOT(on_terminated()));
+
+        connect(m_executThread,SIGNAL(finished()),
+                m_widgetBFGenerate,SLOT(on_toggleRemove()));
+
+        connect(m_executThread,SIGNAL(finished()),
+                this,SLOT(on_finished()));
+
+        emit locked(false);
+
+        m_executTimer = startTimer(100);
+        m_executThread->start();
+    }
 }
 //------------------------------------------------------------------
 
@@ -253,93 +284,11 @@ void CWindowMain::on_finished()
     killTimer(m_executTimer);
     m_executTimer = 0;
 
-    emit executingOperation(tr("finished"));
-    emit messageAppend(m_executObject->progressFinished());
-    emit locked(false);
-    emit triggeredView();
+    emit locked(true);
+    emit updateView();
 
-    delete m_executObject;
     delete m_executThread;
-
-    m_executObject = NULL;
     m_executThread = NULL;
-}
-//------------------------------------------------------------------
-
-
-void CWindowMain::on_satFinished()
-{
-    killTimer(m_executTimer);
-    m_executTimer = 0;
-
-    emit executingOperation(tr("finished"));
-    emit messageAppend(m_sat->progressFinished());
-}
-//------------------------------------------------------------------
-
-
-void CWindowMain::on_satRun(const QString &name)
-{
-    Q_UNUSED(name);
-//    if (m_widgetBFList->bfCurrent() == NULL)
-//        return;
-
-//    CSatCreater *satCreater = new CSatCreater(name);
-
-//    m_sat = satCreater->create(m_widgetBFList->bfCurrent());
-
-//    delete satCreater;
-
-//    if (m_sat == NULL)
-//        return;
-
-//    connect(m_sat,SIGNAL(started()),m_widgetPanelMode,SLOT(on_runLocked()));
-//    connect(m_sat,SIGNAL(finished()),m_widgetPanelMode,SLOT(on_runUnlocked()));
-
-//    connect(m_sat,SIGNAL(started()),m_widgetTreeSat,SLOT(on_locked()));
-//    connect(m_sat,SIGNAL(finished()),m_widgetTreeSat,SLOT(on_unlocked()));
-//    connect(m_sat,SIGNAL(finished()),m_widgetTreeSat,SLOT(on_runNextChecked()));
-
-//    connect(m_sat,SIGNAL(started()),m_widgetBFGenerate,SLOT(on_locked()));
-//    connect(m_sat,SIGNAL(finished()),m_widgetBFGenerate,SLOT(on_unlocked()));
-
-//    connect(m_sat,SIGNAL(terminated()),this,SLOT(on_satFinished()));
-//    connect(m_sat,SIGNAL(successful(CBFView*)),this,SLOT(on_satFinished()));
-//    connect(m_sat,SIGNAL(finished()),m_sat,SLOT(deleteLater()));
-
-//    connect(m_widgetPanelMode,SIGNAL(triggeredStopRun()),
-//            m_sat,SLOT(on_stopped()));
-
-//    connect(m_sat,SIGNAL(successful(CBFView*)),
-//            m_widgetBFView,SLOT(on_viewSat(CBFView*)));
-
-//    m_widgetConsol->actVisible()->toggled(true);
-
-//    emit executingOperation(m_sat->progressDescription());
-
-//    m_executTimer = startTimer(100);
-
-//    m_sat->start();
-}
-//------------------------------------------------------------------
-
-
-void CWindowMain::on_satCheckedRun()
-{
-//    if (m_widgetBFList->bfCurrent() == NULL)
-//        return;
-
-//    m_widgetTreeSat->on_startRunChecked();
-}
-//------------------------------------------------------------------
-
-
-void CWindowMain::on_satCheckedRunLog()
-{
-//    if (m_widgetBFList->bfCurrent() == NULL)
-//        return;
-
-//    m_widgetTreeSat->on_startRunLogChecked();
 }
 //------------------------------------------------------------------
 
@@ -448,23 +397,13 @@ void CWindowMain::on_save_as()
 //------------------------------------------------------------------
 
 
-void CWindowMain::startExec()
-{
-    emit executingOperation(m_executObject->progressDescription());
-    emit locked(true);
-
-    m_executTimer = startTimer(100);
-    m_executThread->start();
-}
-//------------------------------------------------------------------
-
-
 void CWindowMain::timerEvent(QTimerEvent *)
 {
-    if (m_executObject != NULL && !m_executObject->isNullObject()) {
-        //emit executingOperation(m_executObject->progressDescription());
-        emit messageAppend(m_executObject->progress());
-        qDebug() << m_executObject->progress();
+    if (m_executThread) {
+        //emit executingOperation(m_executThread->progressDescription());
+        emit messageAppend(m_executThread->progress());
     }
 }
 //------------------------------------------------------------------
+
+

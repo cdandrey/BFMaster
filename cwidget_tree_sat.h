@@ -2,9 +2,12 @@
 #define CWIDGET_TREE_SAT_H
 
 #include <QWidget>
-#include "typedef.h"
+#include <QMap>
+#include <QQueue>
 
 QT_BEGIN_NAMESPACE
+class CBoolFormula;
+class CExecutObject;
 class CToolBarHeader;
 class QAction;
 class QThread;
@@ -17,38 +20,41 @@ class CWidgetTreeSat : public QWidget
     Q_OBJECT
 public:
     explicit CWidgetTreeSat(QWidget *parent = 0);
+    ~CWidgetTreeSat();
 
     QAction *actVisible(){return m_actVisible;}
 
-public slots:
-
-    void on_disabledHide(bool disabled);
-    void on_locked();
-    void on_unlocked();
-    void on_runNextChecked();
-    void on_startRunChecked();
-    void on_startRunLogChecked();
-
 private:
 
+    typedef QMap<QTreeWidgetItem*,CExecutObject*> TMapItemExeObject;
+    typedef QQueue<CExecutObject*> TQueExeObject;
+
+    // data
+    QString      *m_bfName;
+    CBoolFormula *m_bf;
+    TMapItemExeObject m_obj;
+
+    // gui
     CToolBarHeader  *m_header;
     QAction         *m_actVisible;
     QTreeWidget     *m_tree;
 
-    typedef enum {Run = 1,RunLog =2} TRunType;
-
-    bool            m_runChecked;
-    TRunType        m_runType;
+    enum {IndexSat = 0};
 
     void createTreeItem();
+    bool isEmpty();
 
 private slots:
 
-    void clicked_treeWidgetItem(QTreeWidgetItem*);
+    void on_disabledHide(bool disabled);
+    void on_doubleClickedItem(QTreeWidgetItem*);
+    void on_runChecked();
+    void on_set(const QString &bfName,CBoolFormula *bf);
 
 signals:
 
-    void run(const QString&);
+    void execut(const QQueue<CExecutObject*> &queobj);
+
 };
 
 #endif // CWIDGET_TREE_SAT_H

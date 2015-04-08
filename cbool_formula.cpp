@@ -4,25 +4,18 @@
 #include <QDebug>
 #include <QSet>
 #include <QTime>
+#include <QElapsedTimer>
 
 const int  CBoolFormula::LimitGenerate(1000);
 const char CBoolFormula::ChNeg('Z');
 const char CBoolFormula::ChNull('u');
 const char CBoolFormula::ChPos('X');
 
+const char* CBoolFormula::NameSat = "Методы решения задачи выполнимости";
+const char* CBoolFormula::NameSatExhaustive = "Метод полного перебора";
+const char* CBoolFormula::NameSatMinClaus = "Метод минимального дизъюнкта";
 
-CBoolFormula::CParam::CParam() :
-    numLit(0),
-    numNotLit(0),
-    numClaus(0),
-    minLenClaus(0),
-    maxLenClaus(0)
-{
-}
-//---------------------------------------------------------------
-
-
-bool CBoolFormula::CParam::isValid()
+bool BFParam::isValid()
 {
     return (numLit > 0
             && numNotLit > 0
@@ -37,7 +30,7 @@ bool CBoolFormula::CParam::isValid()
 //---------------------------------------------------------------
 
 
-CBoolFormula::CBoolFormula(const CParam &p) :
+CBoolFormula::CBoolFormula(const BFParam &p) :
     m_prm(p),
     m_claus(QList<QList<int> >()),
     m_lits(QMap<int,QList<int> >()),
@@ -50,7 +43,7 @@ CBoolFormula::CBoolFormula(const CParam &p) :
 
 
 CBoolFormula::CBoolFormula(const QList<QList<int> > &cnf) :
-    m_prm(CParam()),
+    m_prm(BFParam()),
     m_claus(sort(cnf)),
     m_lits(toLits(m_claus)),
     m_isCreate(true),
@@ -297,7 +290,7 @@ int CBoolFormula::numLenClaus(bool min) const
 //---------------------------------------------------------------
 
 
-void CBoolFormula::setParam(const CBoolFormula::CParam &p)
+void CBoolFormula::setParam(const BFParam &p)
 {
     m_prm = p;
 
@@ -400,6 +393,22 @@ QByteArray CBoolFormula::toMask(const QList<int> &claus, unsigned len)
         mask[qAbs(x)] = toChar(x);
 
     return mask;
+}
+//---------------------------------------------------------------
+
+
+void CBoolFormula::satMinClaus()
+{
+    PtrSatData satData(new BFSatData);
+    QElapsedTimer timer;
+    timer.start();
+    satData.data()->log = QByteArray("MinClause");
+
+    for (int i = 0; i < 1000000; ++i)
+        satData.data()->time = i;
+
+    satData.data()->time = timer.nsecsElapsed();
+    m_satData.insert(MinClaus,satData);
 }
 //---------------------------------------------------------------
 

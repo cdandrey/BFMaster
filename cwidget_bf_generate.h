@@ -5,6 +5,7 @@
 
 QT_BEGIN_NAMESPACE
 class CBoolFormula;
+class CExecutObject;
 class CToolBarHeader;
 class QLineEdit;
 class QAction;
@@ -18,15 +19,18 @@ class CWidgetBFGenerate : public QWidget
 public:
 
     explicit CWidgetBFGenerate(QWidget *parent = 0);
+    ~CWidgetBFGenerate();
 
     QAction *actVisible(){return m_actVisible;}
 
 public slots:
 
-    void on_set(const QString&,CBoolFormula*);
+    void on_generate();
     void on_locked(bool lock);
+    void on_set(const QString&,CBoolFormula*);
     void on_toggleRemove();
     void on_toggleTerminate();
+
 
     void triggered_actNewName();
     void triggered_actGenerate();
@@ -36,10 +40,13 @@ public slots:
 private:
 
     // data
-    CBoolFormula    *m_bf;
     QString          m_name;
+    CBoolFormula    *m_bf;
+    CExecutObject   *m_exeObj;
 
     // gui
+    volatile bool    m_isRemove;    // flag state action Remove/Terminate
+
     CToolBarHeader  *m_header;
 
     QLineEdit       *m_lineName;
@@ -58,13 +65,12 @@ private:
 
     QSpinBox* newSpin(int val = 0, int min = 0, int max = 100000);
 
-    volatile bool m_isRemove;
-
 signals:
 
-    void generate(const QString &name,CBoolFormula *bf);
-    void regenerate(const QString &name,CBoolFormula *bf);
-    void remove(const QString&);
+    void append(const QString &bfName,CBoolFormula *bf);
+    void execut(CExecutObject *exeGen);
+    void remove(const QString &bfName);
+    void replace(const QString &bfName,CBoolFormula *bf);
     void terminated();
 };
 

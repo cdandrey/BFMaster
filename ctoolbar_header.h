@@ -13,7 +13,6 @@ class CToolBarHeader : public QToolBar
     Q_OBJECT
 public:
     explicit CToolBarHeader(QString title = "",QWidget *parent = 0);
-    ~CToolBarHeader();
 
     QAction *actHint(){return m_actHint;}
 

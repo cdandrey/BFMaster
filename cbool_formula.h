@@ -4,29 +4,37 @@
 #include <QByteArray>
 #include <QList>
 #include <QMap>
+#include <QSharedPointer>
+
+struct BFParam
+{
+    bool isValid();
+
+    int numLit;          // number literals in bool formula
+    int numNotLit;       // number negative literals
+    int numClaus;        // number clause in bool formula
+    int minLenClaus;     // minimal number literals in clause of bool formula
+    int maxLenClaus;     // maximal number literals in clause of bool formula
+};
+
+struct BFSatData;
 
 class CBoolFormula
 {
 public:
 
-    struct CParam
-    {
-        CParam();
-        bool isValid();
+    enum SatState{Satisfiable,Unsatisfiable,Undefine};
+    enum SatAlgorithm{Exhaustive,MinClaus};
 
-        int numLit;          // number literals in bool formula
-        int numNotLit;       // number negative literals
-        int numClaus;        // number clause in bool formula
-        int minLenClaus;     // minimal number literals in clause of bool formula
-        int maxLenClaus;     // maximal number literals in clause of bool formula
-    };
+    typedef QSharedPointer<BFSatData> PtrSatData;
+    typedef QMap<SatAlgorithm,PtrSatData> TMapSatAlgorithmData;
 
 public:
 
-    explicit CBoolFormula(const CParam &p = CParam());
+    explicit CBoolFormula(const BFParam &p);
     explicit CBoolFormula(const QList<QList<int> > &cnf);
 
-           void                  breakGenerate() {m_isTerminate = true;}
+           void                  breakExecut() {m_isTerminate = true;}
            QString               dimacs() const;
            CBoolFormula&         generate();
 
@@ -40,7 +48,7 @@ public:
            int                   numClaus() const;
            int                   numLenClaus(bool min = true) const;
            int                   progressGenerate() const {return m_claus.size();}
-           void                  setParam(const CParam &p);
+           void                  setParam(const BFParam &p);
 
     static QList<QList<int> >    fromDimacs(const QByteArray &text);
     static int                   maxLit(const QList<QList<int> > &clauses);
@@ -53,6 +61,14 @@ public:
     static const char       ChNeg;          // char negative literal
     static const char       ChNull;         // char void literal
     static const char       ChPos;          // char positive literal
+
+public:
+    // member-functions SAT problem (determinated satisfiability)
+    static const char *NameSat;
+    static const char *NameSatExhaustive;
+    static const char *NameSatMinClaus;
+
+    void satMinClaus();
 
 private:
 
@@ -69,11 +85,12 @@ private:
 
 private:
 
-    mutable CParam          m_prm;          // parametrs of the formula
+    mutable BFParam         m_prm;          // parametrs of the formula
 
     QList<QList<int> >      m_claus;        // list clauses of formula
     QMap<int,QList<int> >   m_lits;         // map literals of formula,
                                             // key - literal, value - list clauses included this literal
+    TMapSatAlgorithmData    m_satData;      // results of work sat problem algorithm
 
     bool                    m_isCreate;     // flag formula has created
     mutable bool            m_isChange;     // flag formula has changed
@@ -81,6 +98,20 @@ private:
 
     static const int        LimitGenerate;  // number of re-creating claus, if create claus is absorb or is there
 };
+
+
+struct BFSatData {
+    CBoolFormula::SatState    state;  // sat propety bool formula: satisfaible or unsatisfiable or undefine
+    QList<int>  order;  // set variables (implicant) bool formula is satisfiable
+    QByteArray  log;    // steps of work algorithm  determine satisfiability
+    qint64      qnt;    // quantity operations
+    qint64      time;   // time(ns) of work algorithm determine satisfiability
+
+    BFSatData()
+        : state(CBoolFormula::Undefine),order(QList<int>()),log(""),qnt(0),time(0)
+    {}
+};
+
 
 
 #endif // CBOOL_FORMULA_H

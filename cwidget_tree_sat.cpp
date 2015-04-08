@@ -1,3 +1,4 @@
+#include <QDebug>
 #include "cwidget_tree_sat.h"
 
 #include <QAction>
@@ -5,11 +6,14 @@
 #include <QTreeWidgetItem>
 #include <QVBoxLayout>
 
-#include "csat.h"
+#include "cbool_formula.h"
+#include "cexecut_object.h"
 #include "ctoolbar_header.h"
 
 CWidgetTreeSat::CWidgetTreeSat(QWidget *parent) :
-    QWidget(parent)
+    QWidget(parent),
+    m_bfName(NULL),
+    m_bf(NULL)
 {
     m_header = new CToolBarHeader(tr("Алгоритмы"));
 
@@ -29,7 +33,7 @@ CWidgetTreeSat::CWidgetTreeSat(QWidget *parent) :
     vbox->addWidget(m_tree);
 
     connect(m_tree,SIGNAL(itemDoubleClicked(QTreeWidgetItem*,int)),
-            this,SLOT(clicked_treeWidgetItem(QTreeWidgetItem*)));
+            this,SLOT(on_doubleClickedItem(QTreeWidgetItem*)));
 
     m_actVisible = new QAction(tr("Отображать список алгоритмов"),this);
     m_actVisible->setCheckable(true);
@@ -41,6 +45,13 @@ CWidgetTreeSat::CWidgetTreeSat(QWidget *parent) :
 //------------------------------------------------------------------
 
 
+CWidgetTreeSat::~CWidgetTreeSat()
+{
+    qDeleteAll(m_obj);
+}
+//------------------------------------------------------------------
+
+
 void CWidgetTreeSat::on_disabledHide(bool disabled)
 {
     m_header->actHint()->setDisabled(disabled);
@@ -48,87 +59,68 @@ void CWidgetTreeSat::on_disabledHide(bool disabled)
 //------------------------------------------------------------------
 
 
-void CWidgetTreeSat::on_locked()
-{
-    m_tree->setEnabled(false);
-}
-//------------------------------------------------------------------
-
-
-void CWidgetTreeSat::on_unlocked()
-{
-    m_tree->setEnabled(true);
-}
-//------------------------------------------------------------------
-
-
-void CWidgetTreeSat::on_runNextChecked()
-{
-    static int index = 0;
-
-    if (!m_runChecked)
-        return;
-
-    while (index < m_tree->topLevelItem(0)->childCount() &&
-           m_tree->topLevelItem(0)->child(index)->checkState(0) == Qt::Unchecked)
-        ++index;
-
-    if (index < m_tree->topLevelItem(0)->childCount()) {
-        emit run(m_tree->topLevelItem(0)->child(index)->text(m_runType));
-        ++index;
-    } else {
-        m_runChecked = false;
-        index = 0;
-    }
-}
-//------------------------------------------------------------------
-
-
-void CWidgetTreeSat::on_startRunChecked()
-{
-    m_runChecked = true;
-    m_runType = Run;
-    on_runNextChecked();
-}
-//------------------------------------------------------------------
-
-
-void CWidgetTreeSat::on_startRunLogChecked()
-{
-    m_runChecked = true;
-    m_runType = RunLog;
-    on_runNextChecked();
-}
-//------------------------------------------------------------------
-
-
 void CWidgetTreeSat::createTreeItem()
 {
     QTreeWidgetItem *itTop = new QTreeWidgetItem(m_tree);
-    itTop->setText(0,tr("Выполнимость"));
+    itTop->setText(0,tr(CBoolFormula::NameSat));
 
     QTreeWidgetItem *itExh = new QTreeWidgetItem(itTop);
-    itExh->setText(0,CSatExhaustive::description());
-    itExh->setText(Run,CSatExhaustive::name());
+    itExh->setText(0,tr(CBoolFormula::NameSatExhaustive));
     itExh->setCheckState(0,Qt::Unchecked);
+    m_obj.insert(itExh,new CExecutSatMinClaus());
 
     QTreeWidgetItem *itMCl = new QTreeWidgetItem(itTop);
-    itMCl->setText(0,CSatMinimumClauses::description());
-    itMCl->setText(Run,CSatMinimumClauses::name());
+    itMCl->setText(0,tr(CBoolFormula::NameSatMinClaus));
     itMCl->setCheckState(0,Qt::Unchecked);
-
-    QTreeWidgetItem *itRCl = new QTreeWidgetItem(itTop);
-    itRCl->setText(0,CSatRandomClauses::description());
-    itRCl->setText(Run,CSatRandomClauses::name());
-    itRCl->setCheckState(0,Qt::Unchecked);
+    m_obj.insert(itMCl,new CExecutSatMinClaus());
 
     m_tree->expandAll();
 }
 //------------------------------------------------------------------
 
 
-void CWidgetTreeSat::clicked_treeWidgetItem(QTreeWidgetItem *item)
+bool CWidgetTreeSat::isEmpty()
 {
-    emit run(item->text(Run));
+    return (m_bf == NULL || !m_bf->isCreate() || m_bfName == NULL || m_bfName->isEmpty());
+}
+//------------------------------------------------------------------
+
+void CWidgetTreeSat::on_doubleClickedItem(QTreeWidgetItem *item)
+{
+    Q_UNUSED(item);
+    //emit run(item->text(Run));
+}
+//------------------------------------------------------------------
+
+
+void CWidgetTreeSat::on_runChecked()
+{
+    if (isEmpty())
+        return;
+
+    QQueue<CExecutObject*> queobj;
+
+
+    for (TMapItemExeObject::iterator it = m_obj.begin();
+         it != m_obj.end(); ++it)
+    {
+        if (it.key()->checkState(0)) {
+            it.value()->resetObject(*m_bfName,m_bf);
+            queobj.enqueue(it.value());
+        }
+    }
+
+    emit execut(queobj);
+}
+//------------------------------------------------------------------
+
+
+void CWidgetTreeSat::on_set(const QString &bfName, CBoolFormula *bf)
+{
+    if (bf == NULL || bfName == NULL)
+        return;
+
+    m_bfName = const_cast<QString*>(&bfName);
+    m_bf = bf;
 }
 //------------------------------------------------------------------

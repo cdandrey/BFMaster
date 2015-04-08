@@ -2,6 +2,7 @@
 #define CEXECUT_THREAD_H
 
 #include <QThread>
+#include <QQueue>
 
 class CExecutObject;
 
@@ -11,10 +12,16 @@ class CExecutThread : public QThread
 
 public:
 
-    explicit CExecutThread(QObject *parent = 0,CExecutObject *obj = 0);
+    typedef QQueue<CExecutObject*> QueueExeObject;
+
+    explicit CExecutThread(QObject *parent = 0);
+    CExecutThread(QObject *parent,const QueueExeObject &queue);
+    CExecutThread(QObject *parent,CExecutObject *obj);
     ~CExecutThread();
 
-    void reset(CExecutObject *obj);
+    QString progress() const;
+
+    void reset(const QueueExeObject &queue);
 
     void run();
 
@@ -24,12 +31,13 @@ public slots:
 
 signals:
 
+    void executOperation(const QString&);
     void message(const QString&);
     void successfull();
 
 private:
 
-    CExecutObject *m_obj;
+    QueueExeObject m_queue;
 };
 
 

@@ -21,13 +21,15 @@ const QString CWidgetBFView::BgColorF("bgcolor = '#ffffff'");
 
 CWidgetBFView::CWidgetBFView(QWidget *parent) :
     QWidget(parent),
+    m_bfName(NULL),
     m_bf(NULL)
 {
     m_header = new CToolBarHeader();
 
-    m_lableNameFormula = new QLabel(tr("<нет функции>"),this);
+    m_lableNameFormula = new QLabel(this);
     m_lableNameFormula->setFixedHeight(m_header->minimumHeight());
     m_lableNameFormula->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Preferred);
+    on_setLableNameFormula();
 
     m_actViewFormula = new QAction(QIcon("://ico/bf_view.png"),
                                    tr("Общая информация функции"),this);
@@ -97,6 +99,7 @@ CWidgetBFView::CWidgetBFView(QWidget *parent) :
     connect(m_actViewLits,SIGNAL(toggled(bool)),this,SLOT(triggered_actViewLits()));
     connect(m_actViewLitsSort,SIGNAL(toggled(bool)),this,SLOT(triggered_actViewLitsSort()));
     connect(this,SIGNAL(triggered()),this,SLOT(on_viewFormula()));
+    connect(this,SIGNAL(triggered()),this,SLOT(on_setLableNameFormula()));
 
     connect(this,SIGNAL(setHtml(QString)),m_edit,SLOT(setHtml(QString)));
     connect(this,SIGNAL(setText(QString)),m_edit,SLOT(setPlainText(QString)));
@@ -106,15 +109,16 @@ CWidgetBFView::CWidgetBFView(QWidget *parent) :
 
 void CWidgetBFView::on_set(const QString &name, CBoolFormula *bf)
 {
-    m_lableNameFormula->setText(name);
+    m_bfName = const_cast<QString*>(&name);
     m_bf = bf;
 
-    if (m_bf != NULL) {
+    if (m_bf != NULL && m_bfName != NULL) {
         m_edit->setEnabled(true);
         emit triggered();
     } else {
         m_edit->clear();
         m_edit->setEnabled(false);
+        on_setLableNameFormula();
     }
 }
 //------------------------------------------------------------------
@@ -245,7 +249,7 @@ void CWidgetBFView::on_viewFormula()
 
     html.append(QString("<tr><td %1><b>%2</b></td><td %3>%4</td></tr>")
                 .arg(BgColorC).arg(tr("Имя функции"))
-                .arg(BgColorE).arg(m_lableNameFormula->text()));
+                .arg(BgColorE).arg(*m_bfName));
 
     html.append(QString("<tr><td %1><b>%2</b></td><td %3>%4</td></tr>")
                 .arg(BgColorC).arg(tr("Количество переменных"))
@@ -406,20 +410,17 @@ void CWidgetBFView::on_viewLitsSort()
 
 bool CWidgetBFView::checkViewFormula()
 {
-    if (m_bf != NULL ) {
+    if (m_bf != NULL && m_bfName != NULL && !m_bfName->isEmpty()) {
         if (m_bf->isCreate()) {
             m_edit->setEnabled(true);
             return true;
         } else {
             emit message(tr("%1 - функция не создана.")
-                         .arg(m_lableNameFormula->text()));
-            m_bf = NULL;
-            m_lableNameFormula->setText(tr("<нет функции>"));
+                         .arg(*m_bfName));
         }
     }
 
-    m_edit->clear();
-    m_edit->setEnabled(false);
+    triggered_actHide();
     return false;
 }
 //------------------------------------------------------------------
@@ -454,10 +455,21 @@ void CWidgetBFView::on_disconnect()
 //------------------------------------------------------------------
 
 
+void CWidgetBFView::on_setLableNameFormula()
+{
+    if (m_bfName != NULL && !m_bfName->isEmpty())
+        m_lableNameFormula->setText(*m_bfName);
+    else
+        m_lableNameFormula->setText(tr("<нет функции>"));
+}
+//------------------------------------------------------------------
+
+
 void CWidgetBFView::triggered_actHide()
 {
-    m_lableNameFormula->setText(tr("<нет функции>"));
     m_bf = NULL;
+    m_bfName = NULL;
+    on_setLableNameFormula();
     m_edit->clear();
     m_edit->setEnabled(false);
 }

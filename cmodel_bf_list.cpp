@@ -2,7 +2,6 @@
 #include "cbool_formula.h"
 
 #include <QIcon>
-#include <QDebug>
 
 CModelBFList::CModelBFList(QObject *parent) :
     QAbstractListModel(parent)
@@ -44,29 +43,39 @@ QVariant CModelBFList::data(const QModelIndex &index, int role) const
 //------------------------------------------------------------------
 
 
-void CModelBFList::on_append(const QString &name, CBoolFormula *bf)
+CBoolFormula *CModelBFList::pointData(const QModelIndex &index) const
+{
+    if (!index.isValid() || (index.row() >= m_bfs.size()))
+        return NULL;
+
+    return m_bfs.at(index.row());
+}
+//------------------------------------------------------------------
+
+
+void CModelBFList::on_append(const QString &bfName, CBoolFormula *bf)
 {
     if (bf == NULL)
         return;
 
-    if (name.isEmpty()) {
+    if (bfName.isEmpty()) {
         emit message(tr("ОШИБКА! Пустое имя функции."
                         "Функции %1 не была добавлена в список."));
         delete bf;
         return;
     }
 
-    if (m_names.indexOf(name) >= 0) {
+    if (m_names.indexOf(bfName) >= 0) {
         emit message(tr("ОШИБКА! Одинаковые именна функций."
                         "Функции %1 не была добавлена в список.")
-                     .arg(name));
+                     .arg(bfName));
         delete bf;
         return;
     }
 
     beginInsertRows(QModelIndex(), rowCount(), rowCount());
     m_bfs << bf;
-    m_names << name;
+    m_names << bfName;
     endInsertRows();
 }
 //------------------------------------------------------------------
@@ -80,10 +89,35 @@ void CModelBFList::on_append(const QStringList &lstName, const QList<CBoolFormul
 //------------------------------------------------------------------
 
 
-void CModelBFList::on_remove(const QString& name)
+void CModelBFList::on_appendgen(const QString &bfName, CBoolFormula *bf)
+{
+    on_append(bfName,bf);
+    emit generate();
+}
+//------------------------------------------------------------------
+
+
+void CModelBFList::on_replacegen(const QString &bfName, CBoolFormula *bf)
+{
+    int i;
+    if (bf == NULL || bfName.isEmpty()
+        || (i = m_bfs.indexOf(bf)) < 0 || i >= m_bfs.size())
+        return;
+
+    beginInsertRows(QModelIndex(), rowCount(), rowCount()); // update view in list
+    m_names[i] = bfName;
+    endInsertRows();
+
+    //emit selected(bfName,bf);
+    emit generate();
+}
+//------------------------------------------------------------------
+
+
+void CModelBFList::on_remove(const QString& bfName)
 {
     int row;
-    if ((row = m_names.indexOf(name)) == -1)
+    if ((row = m_names.indexOf(bfName)) == -1)
         return;
 
     beginRemoveRows(QModelIndex(), row, row);
@@ -96,38 +130,38 @@ void CModelBFList::on_remove(const QString& name)
         row = m_names.size() - 1;
 
     if (row >= 0)
-        emit selected(m_names.at(row),m_bfs.at(row));
+        emit selected(m_names[row],m_bfs.at(row));
     else
         emit selected("",NULL);
 }
 //------------------------------------------------------------------
 
 
-bool CModelBFList::rename(const QString &name, const QString &newName)
+bool CModelBFList::rename(const QString &bfOldName, const QString &bfNewName)
 {
-    if (name == newName)
+    if (bfOldName == bfNewName)
         return true;
 
-    int row = m_names.indexOf(name);
+    int row = m_names.indexOf(bfOldName);
 
     if (row == -1) {
         emit message(tr("ОШИБКА!Функция %1 не найдена.")
-                     .arg(name));
+                     .arg(bfOldName));
         return false;
     }
 
-    if (newName.isEmpty()) {
+    if (bfNewName.isEmpty()) {
         emit message(tr("ОШИБКА! Не заданно новое имя функции."));
         return false;
     }
 
-    if (m_names.indexOf(newName) >= 0) {
+    if (m_names.indexOf(bfNewName) >= 0) {
         emit message(tr("ОШИБКА! Функция %1 уже существует в списке.")
-                     .arg(newName));
+                     .arg(bfNewName));
         return false;
     }
 
-    m_names[row] = newName;
+    m_names[row] = bfNewName;
     emit selected(m_names.at(row),m_bfs.at(row));
     return true;
 }

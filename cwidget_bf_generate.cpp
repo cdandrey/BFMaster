@@ -10,12 +10,14 @@
 #include <QVBoxLayout>
 
 #include "cbool_formula.h"
+#include "cexecut_object.h"
 #include "ctoolbar_header.h"
 
 CWidgetBFGenerate::CWidgetBFGenerate(QWidget *parent)
     : QWidget(parent),
-      m_bf(NULL),
       m_name(""),
+      m_bf(NULL),
+      m_exeObj(new CExecutGenerateFormula()),
       m_isRemove(true)
 {
     m_header = new CToolBarHeader(tr("Имя"));
@@ -104,45 +106,65 @@ CWidgetBFGenerate::CWidgetBFGenerate(QWidget *parent)
 //------------------------------------------------------------------
 
 
-void CWidgetBFGenerate::on_set(const QString &name, CBoolFormula *bf)
+CWidgetBFGenerate::~CWidgetBFGenerate()
 {
-    if ((m_bf == NULL && m_name.isEmpty())
-         || (m_name != name))
-    {
-        m_bf = bf;
-        m_name = name;
-        m_lineName->setText(m_name);
+    delete m_exeObj;
+}
+//------------------------------------------------------------------
 
-        if (m_bf != NULL && !m_name.isEmpty()) {
 
-            m_spinX->setValue(m_bf->numLit(true));
-            m_spinZ->setValue(m_bf->numLit(false));
-            m_spinD->setValue(m_bf->numClaus());
-            m_spinMin->setValue(m_bf->numLenClaus(true));
-            m_spinMax->setValue(m_bf->numLenClaus(false));
+void CWidgetBFGenerate::on_generate()
+{
+    if (m_bf == NULL || m_name.isEmpty())
+        return;
 
-            if (m_actGenerate->isEnabled()) {
-                m_actRegenerate->setEnabled(true);
-                m_actRemove->setEnabled(true);
-            }
-        }
-    }
+    m_exeObj->resetObject(m_name,m_bf);
+
+    emit execut(m_exeObj);
 }
 //------------------------------------------------------------------
 
 
 void CWidgetBFGenerate::on_locked(bool lock)
 {
-    m_actGenerate->setEnabled(!lock);
-    m_actRegenerate->setEnabled(!lock);
-    m_actRemove->setEnabled(!m_actRemove->data().toBool() || !lock); // set enable when action is Terminate
+    m_actGenerate->setEnabled(lock);
+    m_actRegenerate->setEnabled(lock);
+    m_actRemove->setEnabled(!m_actRemove->data().toBool() || lock); // set enable when action is Terminate
+}
+//------------------------------------------------------------------
+
+
+void CWidgetBFGenerate::on_set(const QString &name, CBoolFormula *bf)
+{
+    if (m_name != name) {
+
+        m_bf = bf;
+        m_name = name;
+
+        if (m_bf == NULL || m_name.isEmpty())
+            return;
+
+        m_lineName->setText(m_name);
+
+        m_spinX->setValue(m_bf->numLit(true));
+        m_spinZ->setValue(m_bf->numLit(false));
+        m_spinD->setValue(m_bf->numClaus());
+        m_spinMin->setValue(m_bf->numLenClaus(true));
+        m_spinMax->setValue(m_bf->numLenClaus(false));
+
+        if (m_actGenerate->isEnabled()) {
+            m_actRegenerate->setEnabled(true);
+            m_actRemove->setEnabled(true);
+        }
+    }
 }
 //------------------------------------------------------------------
 
 
 void CWidgetBFGenerate::on_toggleRemove()
 {
-    m_actRemove->setData(true); m_isRemove = true;// set flag action is Remove
+    m_actRemove->setData(true);
+    m_isRemove = true;// set flag action is Remove
     m_actRemove->setIcon(QIcon("://ico/bfgen_del.png"));
     m_actRemove->setText(tr("Удалить функцию"));
     disconnect(m_actRemove,SIGNAL(triggered()),this,SIGNAL(terminated()));
@@ -153,7 +175,8 @@ void CWidgetBFGenerate::on_toggleRemove()
 
 void CWidgetBFGenerate::on_toggleTerminate()
 {
-    m_actRemove->setData(false);m_isRemove = false;    // set flag action is Terminate
+    m_actRemove->setData(false);
+    m_isRemove = false;    // set flag action is Terminate
     m_actRemove->setIcon(QIcon("://ico/bfgen_stop.png"));
     m_actRemove->setText(tr("Прервать генерацию функции"));
     connect(m_actRemove,SIGNAL(triggered()),this,SIGNAL(terminated()));
@@ -176,20 +199,21 @@ QSpinBox *CWidgetBFGenerate::newSpin(int val, int min, int max)
 
 void CWidgetBFGenerate::triggered_actGenerate()
 {
-    CBoolFormula::CParam pm;
-    pm.numLit = m_spinX->value();
-    pm.numNotLit = m_spinZ->value();
-    pm.numClaus = m_spinD->value();
-    pm.minLenClaus = m_spinMin->value();
-    pm.maxLenClaus = m_spinMax->value();
-    m_bf = new CBoolFormula(pm);
+    BFParam p;
+    p.numLit = m_spinX->value();
+    p.numNotLit = m_spinZ->value();
+    p.numClaus = m_spinD->value();
+    p.minLenClaus = m_spinMin->value();
+    p.maxLenClaus = m_spinMax->value();
+
+    m_bf = new CBoolFormula(p);
 
     if (m_name == m_lineName->text() || m_lineName->text().isEmpty())
         triggered_actNewName();
 
     m_name = m_lineName->text();
 
-    emit generate(m_name,m_bf);
+    emit append(m_name,m_bf);
 }
 //------------------------------------------------------------------
 
@@ -199,7 +223,7 @@ void CWidgetBFGenerate::triggered_actRegenerate()
     if (m_bf == NULL || m_name.isEmpty())
         return;
 
-    CBoolFormula::CParam p;
+    BFParam p;
     p.numLit = m_spinX->value();
     p.numNotLit = m_spinZ->value();
     p.numClaus = m_spinD->value();
@@ -207,7 +231,13 @@ void CWidgetBFGenerate::triggered_actRegenerate()
     p.maxLenClaus = m_spinMax->value();
 
     m_bf->setParam(p);
-    emit regenerate(m_name,m_bf);
+
+    if (m_lineName->text().isEmpty())
+        triggered_actNewName();
+
+    m_name = m_lineName->text();
+
+    emit replace(m_name,m_bf);
 }
 //------------------------------------------------------------------
 

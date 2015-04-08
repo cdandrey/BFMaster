@@ -2,6 +2,7 @@
 #define CWINDOW_MAIN_H
 
 #include <QMainWindow>
+#include <QQueue>
 
 QT_BEGIN_NAMESPACE
 class CExecutObject;
@@ -24,6 +25,8 @@ class CWindowMain : public QMainWindow
 
 public:
 
+    typedef QQueue<CExecutObject*> TQueExeObject;
+
     explicit CWindowMain(QWidget *parent = 0);
     ~CWindowMain();
 
@@ -34,25 +37,17 @@ protected:
 
 private slots:
 
-    void on_executed(const QString &name,CBoolFormula *bf);
+    void on_execut(CExecutObject *obj);
+    void on_execut(const QQueue<CExecutObject*> &queobj);
     void on_finished();
-
-    void on_satFinished();
-    void on_satRun(const QString&);
-    void on_satCheckedRun();
-    void on_satCheckedRunLog();
 
     void on_open();
     void on_save();
     void on_save_as();
 
-private:
-
-    void startExec();
 
 private:
 
-    CExecutObject       *m_executObject;
     CExecutThread       *m_executThread;
     int                  m_executTimer;
 
@@ -80,7 +75,7 @@ signals:
 
     void append(const QString &name, CBoolFormula *bf);
     void locked(bool);
-    void triggeredView();
+    void updateView();
 
 };
 

@@ -4,6 +4,7 @@
 #include <QWidget>
 
 QT_BEGIN_NAMESPACE
+class BFParam;
 class CBoolFormula;
 class CModelBFList;
 class CToolBarHeader;
@@ -22,11 +23,8 @@ public:
     QAction *actVisible(){return m_actVisible;}
     QString currentBFName() const;
     QString currentBFDimacs() const;
-    bool rename(const QString &name,const QString &newName);
-
-public slots:
-
-    void on_disabledHide(bool disabled);
+    CBoolFormula *currentBFPoint() const;
+    bool rename(const QString &bfOldName,const QString &bfNewName);
 
 private:
 
@@ -35,13 +33,21 @@ private:
     CModelBFList      *m_model;
     QAction           *m_actVisible;
 
+private slots:
+
+    void on_disabledHide(bool disabled);
+
 signals:
 
-    void append(const QString&,CBoolFormula*);
-    void append(const QStringList&,const QList<CBoolFormula*>&);
-    void message(const QString&);
-    void remove(const QString&);
-    void selected(const QString&,CBoolFormula*);
+    void append(const QString &bfName,CBoolFormula *bf);
+    void append(const QStringList &bfNameLst,const QList<CBoolFormula*> &bfLst);
+    void appendgen(const QString &bfName,CBoolFormula *bf);
+    void generate();
+    void locked(bool);
+    void message(const QString &message);
+    void remove(const QString &bfName);
+    void replace(const QString &bfName,CBoolFormula *bf);
+    void selected(const QString &bfName,CBoolFormula *bf);
 
 };
 

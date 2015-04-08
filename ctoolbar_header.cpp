@@ -23,14 +23,6 @@ CToolBarHeader::CToolBarHeader(QString title,QWidget *parent) :
 //------------------------------------------------------------------
 
 
-CToolBarHeader::~CToolBarHeader()
-{
-    m_labelTitle->~QLabel();
-    m_actHint->~QAction();
-}
-//------------------------------------------------------------------
-
-
 void CToolBarHeader::insertSpace(QAction *before,int width)
 {
     QWidget *space = new QWidget();

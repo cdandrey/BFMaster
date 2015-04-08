@@ -42,8 +42,17 @@ CWidgetBFList::CWidgetBFList(QWidget *parent)
     connect(this,SIGNAL(append(QString,CBoolFormula*)),
             m_model,SLOT(on_append(QString,CBoolFormula*)));
 
+    connect(this,SIGNAL(appendgen(QString,CBoolFormula*)),
+            m_model,SLOT(on_appendgen(QString,CBoolFormula*)));
+
+    connect(m_model,SIGNAL(generate()),
+            this,SIGNAL(generate()));
+
     connect(this,SIGNAL(remove(QString)),
             m_model,SLOT(on_remove(QString)));
+
+    connect(this,SIGNAL(replace(QString,CBoolFormula*)),
+            m_model,SLOT(on_replacegen(QString,CBoolFormula*)));
 
     connect(m_list,SIGNAL(clicked(QModelIndex)),
             m_model,SLOT(on_select(QModelIndex)));
@@ -59,10 +68,7 @@ CWidgetBFList::CWidgetBFList(QWidget *parent)
 
 CWidgetBFList::~CWidgetBFList()
 {
-    m_header->~CToolBarHeader();
-    m_list->~QListView();
-    m_model->~CModelBFList();
-    m_actVisible->~QAction();
+    delete m_model;
 }
 //------------------------------------------------------------------
 
@@ -81,9 +87,16 @@ QString CWidgetBFList::currentBFDimacs() const
 //------------------------------------------------------------------
 
 
-bool CWidgetBFList::rename(const QString &name, const QString &newName)
+CBoolFormula *CWidgetBFList::currentBFPoint() const
 {
-    return m_model->rename(name,newName);
+    return m_model->pointData(m_list->currentIndex());
+}
+//------------------------------------------------------------------
+
+
+bool CWidgetBFList::rename(const QString &bfOldName, const QString &bfNewName)
+{
+    return m_model->rename(bfOldName,bfNewName);
 }
 //------------------------------------------------------------------
 
@@ -93,3 +106,5 @@ void CWidgetBFList::on_disabledHide(bool disabled)
     m_header->actHint()->setDisabled(disabled);
 }
 //------------------------------------------------------------------
+
+

@@ -22,7 +22,7 @@ public:
 
 public slots:
 
-    void on_set(const QString &name,CBoolFormula *bf);
+    void on_set(const QString &name, CBoolFormula *bf);
 
     void on_viewClaus();
     void on_viewClausSort();
@@ -33,6 +33,7 @@ public slots:
 
 private:
 
+    QString         *m_bfName;
     CBoolFormula    *m_bf;
 
     CToolBarHeader  *m_header;
@@ -63,6 +64,7 @@ private:
 private slots:
 
     void on_disconnect();
+    void on_setLableNameFormula();
     void triggered_actHide();
 
     void triggered_actViewFormula();
@@ -73,6 +75,7 @@ private slots:
     void triggered_actViewLitsSort();
 
 signals:
+
     void message(const QString &msg);
     void setHtml(const QString &text);
     void setText(const QString &text);
