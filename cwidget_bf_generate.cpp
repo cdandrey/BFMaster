@@ -1,6 +1,3 @@
-#include "cwidget_bf_generate.h"
-
-#include <QDebug>
 #include <QAction>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -9,6 +6,7 @@
 #include <QTime>
 #include <QVBoxLayout>
 
+#include "cwidget_bf_generate.h"
 #include "cbool_formula.h"
 #include "cexecut_object.h"
 #include "ctoolbar_header.h"
@@ -18,7 +16,7 @@ CWidgetBFGenerate::CWidgetBFGenerate(QWidget *parent)
       m_name(""),
       m_bf(NULL),
       m_exeObj(new CExecutGenerateFormula()),
-      m_isRemove(true)
+      m_isTriggeredGenerate(false)
 {
     m_header = new CToolBarHeader(tr("Имя"));
 
@@ -88,9 +86,6 @@ CWidgetBFGenerate::CWidgetBFGenerate(QWidget *parent)
     vbox->setMenuBar(m_header);
     vbox->addLayout(hbox);
 
-    connect(m_actGenerate,SIGNAL(triggered()),this,SLOT(on_toggleTerminate()));
-    connect(m_actRegenerate,SIGNAL(triggered()),this,SLOT(on_toggleTerminate()));
-
     connect(m_actNewName,SIGNAL(triggered()),this,SLOT(triggered_actNewName()));
     connect(m_actGenerate,SIGNAL(triggered()),this,SLOT(triggered_actGenerate()));
     connect(m_actRegenerate,SIGNAL(triggered()),this,SLOT(triggered_actRegenerate()));
@@ -113,6 +108,23 @@ CWidgetBFGenerate::~CWidgetBFGenerate()
 //------------------------------------------------------------------
 
 
+void CWidgetBFGenerate::on_changeRemoveStop(bool change)
+{
+    if (change) {
+        m_actRemove->setIcon(QIcon("://ico/bfgen_stop.png"));
+        m_actRemove->setText(tr("Прервать генерацию функции"));
+        disconnect(m_actRemove,SIGNAL(triggered()),this,SLOT(triggered_actRemove()));
+        connect(m_actRemove,SIGNAL(triggered()),this,SIGNAL(terminated()));
+    } else {
+        m_actRemove->setIcon(QIcon("://ico/bfgen_del.png"));
+        m_actRemove->setText(tr("Удалить функцию"));
+        connect(m_actRemove,SIGNAL(triggered()),this,SLOT(triggered_actRemove()));
+        disconnect(m_actRemove,SIGNAL(triggered()),this,SIGNAL(terminated()));
+    }
+}
+//------------------------------------------------------------------
+
+
 void CWidgetBFGenerate::on_generate()
 {
     if (m_bf == NULL || m_name.isEmpty())
@@ -120,16 +132,53 @@ void CWidgetBFGenerate::on_generate()
 
     m_exeObj->resetObject(m_name,m_bf);
 
-    emit execut(m_exeObj);
+    emit execut(QList<CExecutObject*>({m_exeObj}));
 }
 //------------------------------------------------------------------
 
 
-void CWidgetBFGenerate::on_locked(bool lock)
+void CWidgetBFGenerate::on_locked()
 {
-    m_actGenerate->setEnabled(lock);
-    m_actRegenerate->setEnabled(lock);
-    m_actRemove->setEnabled(!m_actRemove->data().toBool() || lock); // set enable when action is Terminate
+    m_lineName->setEnabled(false);
+    m_actNewName->setEnabled(false);
+
+    m_actGenerate->setEnabled(false);
+    m_actRegenerate->setEnabled(false);
+
+    m_actRemove->setEnabled(m_isTriggeredGenerate);
+    on_changeRemoveStop(m_isTriggeredGenerate);
+
+    m_actVisible->setEnabled(false);
+
+    m_spinX->setEnabled(false);
+    m_spinZ->setEnabled(false);
+    m_spinD->setEnabled(false);
+    m_spinMin->setEnabled(false);
+    m_spinMax->setEnabled(false);
+}
+//------------------------------------------------------------------
+
+
+void CWidgetBFGenerate::on_unlocked()
+{
+    on_resetTriggered();
+
+    m_lineName->setEnabled(true);
+    m_actNewName->setEnabled(true);
+
+    m_actGenerate->setEnabled(true);
+    m_actRegenerate->setEnabled(true);
+
+    m_actRemove->setEnabled(true);
+    on_changeRemoveStop(false);
+
+    m_actVisible->setEnabled(true);
+
+    m_spinX->setEnabled(true);
+    m_spinZ->setEnabled(true);
+    m_spinD->setEnabled(true);
+    m_spinMin->setEnabled(true);
+    m_spinMax->setEnabled(true);
 }
 //------------------------------------------------------------------
 
@@ -161,26 +210,9 @@ void CWidgetBFGenerate::on_set(const QString &name, CBoolFormula *bf)
 //------------------------------------------------------------------
 
 
-void CWidgetBFGenerate::on_toggleRemove()
+void CWidgetBFGenerate::on_resetTriggered()
 {
-    m_actRemove->setData(true);
-    m_isRemove = true;// set flag action is Remove
-    m_actRemove->setIcon(QIcon("://ico/bfgen_del.png"));
-    m_actRemove->setText(tr("Удалить функцию"));
-    disconnect(m_actRemove,SIGNAL(triggered()),this,SIGNAL(terminated()));
-    connect(m_actRemove,SIGNAL(triggered()),this,SLOT(triggered_actRemove()));
-}
-//------------------------------------------------------------------
-
-
-void CWidgetBFGenerate::on_toggleTerminate()
-{
-    m_actRemove->setData(false);
-    m_isRemove = false;    // set flag action is Terminate
-    m_actRemove->setIcon(QIcon("://ico/bfgen_stop.png"));
-    m_actRemove->setText(tr("Прервать генерацию функции"));
-    connect(m_actRemove,SIGNAL(triggered()),this,SIGNAL(terminated()));
-    disconnect(m_actRemove,SIGNAL(triggered()),this,SLOT(triggered_actRemove()));
+    m_isTriggeredGenerate = false;
 }
 //------------------------------------------------------------------
 
@@ -199,6 +231,8 @@ QSpinBox *CWidgetBFGenerate::newSpin(int val, int min, int max)
 
 void CWidgetBFGenerate::triggered_actGenerate()
 {
+    m_isTriggeredGenerate = true;
+
     BFParam p;
     p.numLit = m_spinX->value();
     p.numNotLit = m_spinZ->value();
@@ -222,6 +256,8 @@ void CWidgetBFGenerate::triggered_actRegenerate()
 {
     if (m_bf == NULL || m_name.isEmpty())
         return;
+
+    m_isTriggeredGenerate = true;
 
     BFParam p;
     p.numLit = m_spinX->value();

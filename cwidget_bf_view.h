@@ -20,17 +20,6 @@ public:
 
     explicit CWidgetBFView(QWidget *parent = 0);
 
-public slots:
-
-    void on_set(const QString &name, CBoolFormula *bf);
-
-    void on_viewClaus();
-    void on_viewClausSort();
-    void on_viewDimacs();
-    void on_viewFormula();
-    void on_viewLits();
-    void on_viewLitsSort();
-
 private:
 
     QString         *m_bfName;
@@ -57,25 +46,31 @@ private:
     static const QString BgColorE;
     static const QString BgColorF;
 
-           bool    checkViewFormula();
+           bool    isBoolFormula();
     inline QString htmlLit(int lit) const;
     inline QString htmlClaus(int claus) const;
+           QString htmlLstLit(const QList<int> &lst,const QString &divider = "") const;
 
 private slots:
 
-    void on_disconnect();
+    void on_set(const QString &name, CBoolFormula *bf);
     void on_setLableNameFormula();
-    void triggered_actHide();
 
-    void triggered_actViewFormula();
-    void triggered_actViewDimacs();
-    void triggered_actViewClaus();
-    void triggered_actViewClausSort();
-    void triggered_actViewLits();
-    void triggered_actViewLitsSort();
+    void on_viewClaus(bool isToggle);
+    void on_viewClausSort(bool isToggle);
+    void on_viewDimacs(bool isToggle);
+    void on_viewFormula(bool isToggle);
+    void on_viewLits(bool isToggle);
+    void on_viewLitsSort(bool isToggle);
+    void on_viewUpdate();
+
+    QAction* checked_Action() const;
+
+    void triggered_actHide();
 
 signals:
 
+    void getLogSelectSat(bool isGet);
     void message(const QString &msg);
     void setHtml(const QString &text);
     void setText(const QString &text);

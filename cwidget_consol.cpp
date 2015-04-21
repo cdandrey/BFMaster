@@ -1,11 +1,9 @@
-#include "cwidget_consol.h"
-
 #include <QAction>
 #include <QLabel>
 #include <QPlainTextEdit>
-#include <QScrollBar>
 #include <QVBoxLayout>
 
+#include "cwidget_consol.h"
 #include "ctoolbar_header.h"
 
 CWidgetConsol::CWidgetConsol(QWidget *parent) :
@@ -22,7 +20,6 @@ CWidgetConsol::CWidgetConsol(QWidget *parent) :
     m_edit = new QPlainTextEdit();
     m_edit->setFont(QFont("Courier",12));
     m_edit->setReadOnly(true);
-    m_edit->setLineWrapMode(QPlainTextEdit::NoWrap);
     m_edit->document()->setDocumentMargin(10);
     m_edit->setMaximumBlockCount(1000);
 
@@ -60,7 +57,7 @@ void CWidgetConsol::messageSet(const QString &message)
 
 void CWidgetConsol::executingOperation(const QString &operation)
 {
-    if (operation == "finished") {
+    if (operation == "") {
         m_header->setTitle(tr("Консоль"));
     } else {
         m_header->setTitle(operation);

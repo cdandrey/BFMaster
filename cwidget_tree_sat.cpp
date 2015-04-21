@@ -1,11 +1,9 @@
-#include <QDebug>
-#include "cwidget_tree_sat.h"
-
 #include <QAction>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 #include <QVBoxLayout>
 
+#include "cwidget_tree_sat.h"
 #include "cbool_formula.h"
 #include "cexecut_object.h"
 #include "ctoolbar_header.h"
@@ -31,9 +29,6 @@ CWidgetTreeSat::CWidgetTreeSat(QWidget *parent) :
 
     vbox->addWidget(m_header);
     vbox->addWidget(m_tree);
-
-    connect(m_tree,SIGNAL(itemDoubleClicked(QTreeWidgetItem*,int)),
-            this,SLOT(on_doubleClickedItem(QTreeWidgetItem*)));
 
     m_actVisible = new QAction(tr("Отображать список алгоритмов"),this);
     m_actVisible->setCheckable(true);
@@ -85,10 +80,18 @@ bool CWidgetTreeSat::isEmpty()
 }
 //------------------------------------------------------------------
 
-void CWidgetTreeSat::on_doubleClickedItem(QTreeWidgetItem *item)
+
+void CWidgetTreeSat::on_returnLogSelectSat(bool isGet)
 {
-    Q_UNUSED(item);
-    //emit run(item->text(Run));
+    if (isEmpty() || !isGet)
+        return;
+
+    for (TMapItemExeObject::iterator it = m_obj.begin();
+         it != m_obj.end(); ++it)
+        if (it.key() == m_tree->currentItem()) {
+            emit logSelectSat(it.value()->log());
+            return;
+        }
 }
 //------------------------------------------------------------------
 
@@ -98,29 +101,54 @@ void CWidgetTreeSat::on_runChecked()
     if (isEmpty())
         return;
 
-    QQueue<CExecutObject*> queobj;
+    QList<CExecutObject*> lstObj;
 
 
     for (TMapItemExeObject::iterator it = m_obj.begin();
          it != m_obj.end(); ++it)
     {
         if (it.key()->checkState(0)) {
-            it.value()->resetObject(*m_bfName,m_bf);
-            queobj.enqueue(it.value());
+            it.value()->resetObject(*m_bfName,m_bf,CExecutObject::Normal);
+            lstObj << it.value();
         }
     }
 
-    emit execut(queobj);
+    emit execut(lstObj);
+}
+//------------------------------------------------------------------
+
+
+void CWidgetTreeSat::on_runLogChecked()
+{
+    if (isEmpty())
+        return;
+
+    QList<CExecutObject*> lstObj;
+
+
+    for (TMapItemExeObject::iterator it = m_obj.begin();
+         it != m_obj.end(); ++it)
+    {
+        if (it.key()->checkState(0)) {
+            it.value()->resetObject(*m_bfName,m_bf,CExecutObject::Logging);
+            lstObj << it.value();
+        }
+    }
+
+    emit execut(lstObj);
 }
 //------------------------------------------------------------------
 
 
 void CWidgetTreeSat::on_set(const QString &bfName, CBoolFormula *bf)
 {
-    if (bf == NULL || bfName == NULL)
+    if (bf == NULL || bfName == NULL || bfName.isEmpty())
         return;
 
     m_bfName = const_cast<QString*>(&bfName);
     m_bf = bf;
+
+    for (TMapItemExeObject::iterator it = m_obj.begin();it != m_obj.end(); ++it)
+        it.value()->resetObject(*m_bfName,m_bf,CExecutObject::Normal);
 }
 //------------------------------------------------------------------

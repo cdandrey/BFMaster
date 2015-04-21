@@ -7,14 +7,13 @@
 QT += core gui
 QT += widgets
 QT += printsupport
+CONFIG += c++11
 
 TARGET = BFMaster_v0_02
 TEMPLATE = app
 
 
 SOURCES += main.cpp\
-    cboolfunction.cpp \
-    csat.cpp \
     cwindow_main.cpp \
     cwidget_consol.cpp \
     cwidget_bf_generate.cpp \
@@ -29,8 +28,6 @@ SOURCES += main.cpp\
     cmodel_bf_list.cpp
 
 HEADERS  += \
-    cboolfunction.h \
-    csat.h \
     cwindow_main.h \
     cwidget_consol.h \
     cwidget_bf_generate.h \

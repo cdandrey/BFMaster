@@ -2,13 +2,11 @@
 #define CWINDOW_MAIN_H
 
 #include <QMainWindow>
-#include <QQueue>
 
 QT_BEGIN_NAMESPACE
 class CExecutObject;
 class CExecutThread;
 class CBoolFormula;
-class CSat;
 class CWidgetBFGenerate;
 class CWidgetBFList;
 class CWidgetBFView;
@@ -25,8 +23,6 @@ class CWindowMain : public QMainWindow
 
 public:
 
-    typedef QQueue<CExecutObject*> TQueExeObject;
-
     explicit CWindowMain(QWidget *parent = 0);
     ~CWindowMain();
 
@@ -37,13 +33,13 @@ protected:
 
 private slots:
 
-    void on_execut(CExecutObject *obj);
-    void on_execut(const QQueue<CExecutObject*> &queobj);
+    void on_execut(const QList<CExecutObject*> &lstObj);
     void on_finished();
 
     void on_open();
     void on_save();
     void on_save_as();
+    void on_timerWork(uint freq);
 
 
 private:
@@ -61,9 +57,8 @@ private:
     QAction             *m_actOpen;
     QAction             *m_actSave;
     QAction             *m_actSaveAs;
+    QAction             *m_actQuit;
     QMenu               *mainMenu;
-
-    CSat                *m_sat;
 
     static const QString BFSuffix;
 
@@ -74,7 +69,9 @@ signals:
     void executingOperation(const QString &text);
 
     void append(const QString &name, CBoolFormula *bf);
-    void locked(bool);
+    void locked();
+    void unlocked();
+    void terminated();
     void updateView();
 
 };

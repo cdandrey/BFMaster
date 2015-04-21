@@ -1,17 +1,17 @@
 #include "cexecut_object.h"
 #include "cbool_formula.h"
-#include <QDebug>
 
-CExecutGenerateFormula::CExecutGenerateFormula(const QString &name, CBoolFormula *bf)
+CExecutGenerateFormula::CExecutGenerateFormula(const QString &name, CBoolFormula *bf, EModeExecut mode)
     : m_name(name),
       m_bf(bf),
-      m_beginNumClaus(m_bf ? m_bf->numClaus() : 0)
+      m_beginNumClaus(m_bf ? m_bf->numClaus() : 0),
+      m_mode(mode)
 {
 }
 //---------------------------------------------------------------
 
 
-void CExecutGenerateFormula::resetObject(const QString &name, CBoolFormula *bf)
+void CExecutGenerateFormula::resetObject(const QString &name, CBoolFormula *bf, EModeExecut mode)
 {
     if (m_name == name && m_bf == bf)
         return;
@@ -19,11 +19,12 @@ void CExecutGenerateFormula::resetObject(const QString &name, CBoolFormula *bf)
     m_name = name;
     m_bf = bf;
     m_beginNumClaus = bf->numClaus();
+    m_mode = mode;
 }
 //---------------------------------------------------------------
 
 
-QString CExecutGenerateFormula::progress() const
+inline QString CExecutGenerateFormula::progress() const
 {
     return QString("созданно дизъюнктов: %1")
             .arg(m_bf->progressGenerate());
@@ -31,7 +32,7 @@ QString CExecutGenerateFormula::progress() const
 //---------------------------------------------------------------
 
 
-QString CExecutGenerateFormula::progressFinished() const
+inline QString CExecutGenerateFormula::progressFinished() const
 {
     QString str = "";
 
@@ -66,7 +67,7 @@ QString CExecutGenerateFormula::progressFinished() const
 //-----------------------------------------------------------------------
 
 
-QString CExecutGenerateFormula::progressDescription() const
+inline QString CExecutGenerateFormula::progressDescription() const
 {
     return QString("%1 %2 ")
             .arg("Создается функция")
@@ -75,14 +76,14 @@ QString CExecutGenerateFormula::progressDescription() const
 //-----------------------------------------------------------------------
 
 
-bool CExecutGenerateFormula::run() const
+inline void CExecutGenerateFormula::run() const
 {
     m_bf->generate();
-    return m_bf->isCreate();
 }
 //-----------------------------------------------------------------------
 
-void CExecutGenerateFormula::terminated() const
+
+inline void CExecutGenerateFormula::terminated() const
 {
     m_bf->breakExecut();
 }
@@ -91,8 +92,10 @@ void CExecutGenerateFormula::terminated() const
 
 // SatMinClause
 
-void CExecutSatMinClaus::resetObject(const QString &name, CBoolFormula *bf)
+void CExecutSatMinClaus::resetObject(const QString &name, CBoolFormula *bf, EModeExecut mode)
 {
+    m_mode = mode;
+
     if (m_name == name && m_bf == bf)
         return;
 
@@ -101,24 +104,24 @@ void CExecutSatMinClaus::resetObject(const QString &name, CBoolFormula *bf)
 }
 //---------------------------------------------------------------
 
-QString CExecutSatMinClaus::progress() const
+
+inline QString CExecutSatMinClaus::progress() const
 {
-    return QString("progress satMinClause");
-    //.arg(m_bf->progressGenerate());
+    return m_bf->progressSat();
 }
 //---------------------------------------------------------------
 
 
-QString CExecutSatMinClaus::progressFinished() const
+inline QString CExecutSatMinClaus::progressFinished() const
 {
-    QString str = "finished MinClaus";
-
-    return str;
+    return QString("%1 - %2")
+            .arg(m_name)
+            .arg(CBoolFormula::satStateAlias[m_bf->satState(CBoolFormula::MinClaus)]);
 }
 //-----------------------------------------------------------------------
 
 
-QString CExecutSatMinClaus::progressDescription() const
+inline QString CExecutSatMinClaus::progressDescription() const
 {
     return QString("%1.%2 %3")
             .arg(CBoolFormula::NameSatMinClaus)
@@ -128,16 +131,31 @@ QString CExecutSatMinClaus::progressDescription() const
 //-----------------------------------------------------------------------
 
 
-bool CExecutSatMinClaus::run() const
+inline void CExecutSatMinClaus::run() const
 {
-    m_bf->satMinClaus();
-    return true;
+    switch(m_mode){
+    case Normal:
+        m_bf->satMinClaus();
+        break;
+    case Logging:
+        m_bf->satMinClausLog();
+        break;
+    default:
+        break;
+    }
 }
 //-----------------------------------------------------------------------
 
 
-void CExecutSatMinClaus::terminated() const
+inline void CExecutSatMinClaus::terminated() const
 {
     m_bf->breakExecut();
+}
+//-----------------------------------------------------------------------
+
+
+QString CExecutSatMinClaus::log() const
+{
+    return m_bf->satLog(CBoolFormula::MinClaus);
 }
 //-----------------------------------------------------------------------

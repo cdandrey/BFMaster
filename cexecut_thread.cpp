@@ -1,63 +1,47 @@
 #include "cexecut_thread.h"
 #include "cexecut_object.h"
 
-CExecutThread::CExecutThread(QObject *parent)
-    : QThread(parent),
-      m_queue(QueueExeObject())
-{
-}
+//CExecutThread::CExecutThread(QObject *parent)
+//    : QThread(parent),
+//      m_lstObj(QList<CExecutObject *>())
+//{
+//}
 //---------------------------------------------------------------
 
 
-CExecutThread::CExecutThread(QObject *parent, CExecutObject *obj)
-    : QThread(parent),
-      m_queue(QueueExeObject())
-{
-    if (obj)
-        m_queue.enqueue(obj);
-}
-//---------------------------------------------------------------
-
-
-CExecutThread::CExecutThread(QObject *parent, const QueueExeObject &queue)
-    : QThread(parent),
-      m_queue(QueueExeObject())
-{
-    while (queue.size() > m_queue.size())
-        if (queue.head())
-            m_queue.enqueue(queue.head());
-}
-//---------------------------------------------------------------
-
-
-CExecutThread::~CExecutThread()
-{
-}
+//CExecutThread::CExecutThread(QObject *parent, const QList<CExecutObject *> &lstObj)
+//    : QThread(parent),
+//      m_lstObj(lstObj)
+//{
+//}
 //---------------------------------------------------------------
 
 
 QString CExecutThread::progress() const
 {
-    return m_queue.isEmpty() ? tr("Очередь выполняемых процессов пустая.")
-                               : m_queue.head()->progress();
-}
-//---------------------------------------------------------------
-
-
-void CExecutThread::reset(const QueueExeObject &queue)
-{
-    m_queue = queue;
+    return m_lstObj.isEmpty() ? "" : m_lstObj.first()->progress();
 }
 //---------------------------------------------------------------
 
 
 void CExecutThread::run()
 {
-    while (!m_queue.isEmpty()) {
-        emit executOperation(m_queue.head()->progressDescription());
-        if (m_queue.head()->run())
-            emit successfull();
-        emit message(m_queue.dequeue()->progressFinished());
+    try {
+        while (!m_lstObj.isEmpty()) {
+
+            emit executOperation(m_lstObj.first()->progressDescription());
+            emit timerWork(100U);
+
+            m_lstObj.first()->run();
+
+            emit timerWork(0U);
+            emit executOperation("");
+            emit message(m_lstObj.takeFirst()->progressFinished());
+        }
+    } catch (...) {
+        emit timerWork(0U);
+        emit executOperation("");
+        emit message(tr("ОШИБКА! При выполнении процесса произошла ошибка."));
     }
 }
 //---------------------------------------------------------------
@@ -65,7 +49,7 @@ void CExecutThread::run()
 
 void CExecutThread::on_terminated()
 {
-    m_queue.head()->terminated();
+    m_lstObj.first()->terminated();
 }
 //---------------------------------------------------------------
 

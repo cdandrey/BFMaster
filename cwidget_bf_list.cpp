@@ -1,12 +1,12 @@
-#include "cwidget_bf_list.h"
-#include "cmodel_bf_list.h"
-#include "ctoolbar_header.h"
-
 #include <QAction>
 #include <QLabel>
 #include <QListView>
 #include <QListWidget>
 #include <QVBoxLayout>
+
+#include "cwidget_bf_list.h"
+#include "cmodel_bf_list.h"
+#include "ctoolbar_header.h"
 
 
 CWidgetBFList::CWidgetBFList(QWidget *parent)

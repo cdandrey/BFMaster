@@ -1,7 +1,7 @@
-#include "ctoolbar_header.h"
-
 #include <QAction>
 #include <QLabel>
+
+#include "ctoolbar_header.h"
 
 CToolBarHeader::CToolBarHeader(QString title,QWidget *parent) :
     QToolBar(parent)

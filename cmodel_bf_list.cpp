@@ -1,7 +1,7 @@
+#include <QIcon>
+
 #include "cmodel_bf_list.h"
 #include "cbool_formula.h"
-
-#include <QIcon>
 
 CModelBFList::CModelBFList(QObject *parent) :
     QAbstractListModel(parent)

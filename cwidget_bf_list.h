@@ -4,7 +4,6 @@
 #include <QWidget>
 
 QT_BEGIN_NAMESPACE
-class BFParam;
 class CBoolFormula;
 class CModelBFList;
 class CToolBarHeader;

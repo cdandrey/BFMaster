@@ -7,8 +7,19 @@
 #include "ctoolbar_header.h"
 #include "cwidget_panel_mode.h"
 
+const char CWidgetPanelMode::IconActRun[] = "://ico/ctrl_run.png";
+const char CWidgetPanelMode::IconActRunLog[] = "://ico/ctrl_runlog.png";
+const char CWidgetPanelMode::IconActStop[] = ":/ico/ctrl_stop.png";
+const char CWidgetPanelMode::IconActStopLog[] = ":/ico/ctrl_stoplog.png";
+
+const char CWidgetPanelMode::TextActRun[] = "Выполнить";
+const char CWidgetPanelMode::TextActRunLog[] = "Выполнить\n с логом";
+const char CWidgetPanelMode::TextActStop[] = "Остановить";
+
 CWidgetPanelMode::CWidgetPanelMode(QWidget *parent) :
-    QFrame(parent)
+    QFrame(parent),
+    m_isTriggeredRun(false),
+    m_isTriggeredRunLog(false)
 {
     this->setFixedWidth(88);
 
@@ -29,9 +40,9 @@ CWidgetPanelMode::CWidgetPanelMode(QWidget *parent) :
     m_actModeTest = new QAction(QIcon("://ico/ctrl_test.png"),tr("Тестирование"),this);
 
     m_actModeRand->setCheckable(true);
-    m_actModeEdit->setCheckable(true);
-    m_actModeCalc->setCheckable(true);
-    m_actModeTest->setCheckable(true);
+    //m_actModeEdit->setCheckable(true);
+    //m_actModeCalc->setCheckable(true);
+    //m_actModeTest->setCheckable(true);
 
     QActionGroup *group = new QActionGroup(this);
     group->addAction(m_actModeRand);
@@ -48,9 +59,9 @@ CWidgetPanelMode::CWidgetPanelMode(QWidget *parent) :
     m_runToolBar->setIconSize(QSize(80,32));
     m_runToolBar->setFont(QFont("Tahoma",7,QFont::Bold));
 
-    m_actRun = new QAction(QIcon(":/ico/ctrl_run.png"),tr("Выполнить"),this);
+    m_actRun = new QAction(QIcon(IconActRun),tr(TextActRun),this);
     m_actRun->setShortcut(QString("F10"));
-    m_actRunLog = new QAction(QIcon(":/ico/ctrl_runlog.png"),tr("Выполнить\n с логом"),this);
+    m_actRunLog = new QAction(QIcon(IconActRunLog),tr(TextActRunLog),this);
     m_actRunLog->setShortcut(QString("F11"));
 
     m_runToolBar->addSeparator();
@@ -71,8 +82,8 @@ CWidgetPanelMode::CWidgetPanelMode(QWidget *parent) :
     connect(m_actModeEdit,SIGNAL(toggled(bool)),this,SIGNAL(toggledEdit(bool)));
     connect(m_actModeCalc,SIGNAL(toggled(bool)),this,SIGNAL(toggledCalc(bool)));
     connect(m_actModeTest,SIGNAL(toggled(bool)),this,SIGNAL(toggledTest(bool)));
-    connect(m_actRun,SIGNAL(triggered()),this,SIGNAL(triggeredRun()));
-    connect(m_actRunLog,SIGNAL(triggered()),this,SIGNAL(triggeredRunLog()));
+    connect(m_actRun,SIGNAL(triggered()),this,SLOT(triggered_Run()));
+    connect(m_actRunLog,SIGNAL(triggered()),this,SLOT(triggered_RunLog()));
 }
 //------------------------------------------------------------------
 
@@ -105,10 +116,73 @@ void CWidgetPanelMode::on_checkedTest()
 //------------------------------------------------------------------
 
 
+void CWidgetPanelMode::on_changeRunStop(bool change)
+{
+    if (change) {
+        m_actRun->setIcon(QIcon(IconActStop));
+        m_actRun->setText(tr(TextActRun));
+        disconnect(m_actRun,SIGNAL(triggered()),this,SLOT(triggered_Run()));
+        connect(m_actRun,SIGNAL(triggered()),this,SIGNAL(terminate()));
+    } else {
+        m_actRun->setIcon(QIcon(IconActRun));
+        m_actRun->setText(tr(TextActRun));
+        connect(m_actRun,SIGNAL(triggered()),this,SLOT(triggered_Run()));
+        disconnect(m_actRun,SIGNAL(triggered()),this,SIGNAL(terminate()));
+    }
+}
+//------------------------------------------------------------------
+
+
+void CWidgetPanelMode::on_changeRunLogStop(bool change)
+{
+    if (change) {
+        m_actRunLog->setIcon(QIcon(IconActStopLog));
+        m_actRunLog->setText(tr(TextActStop));
+        disconnect(m_actRunLog,SIGNAL(triggered()),this,SLOT(triggered_RunLog()));
+        connect(m_actRunLog,SIGNAL(triggered()),this,SIGNAL(terminate()));
+    } else {
+        m_actRunLog->setIcon(QIcon(IconActRunLog));
+        m_actRunLog->setText(tr(TextActRunLog));
+        connect(m_actRunLog,SIGNAL(triggered()),this,SLOT(triggered_RunLog()));
+        disconnect(m_actRunLog,SIGNAL(triggered()),this,SIGNAL(terminate()));
+    }
+}
+//------------------------------------------------------------------
+
+
+void CWidgetPanelMode::on_resetTriggered()
+{
+    m_isTriggeredRun = false;
+    m_isTriggeredRunLog = false;
+}
+//------------------------------------------------------------------
+
+
+void CWidgetPanelMode::triggered_Run()
+{
+    m_isTriggeredRun = true;
+    m_isTriggeredRunLog = false;
+    emit run();
+}
+//------------------------------------------------------------------
+
+
+void CWidgetPanelMode::triggered_RunLog()
+{
+    m_isTriggeredRun = false;
+    m_isTriggeredRunLog = true;
+    emit runLog();
+}
+//------------------------------------------------------------------
+
+
 void CWidgetPanelMode::on_locked()
 {
     m_modeToolBar->setEnabled(false);
-    m_runToolBar->setEnabled(false);
+    m_actRun->setEnabled(m_isTriggeredRun);
+    m_actRunLog->setEnabled(m_isTriggeredRunLog);
+    on_changeRunStop(m_isTriggeredRun);
+    on_changeRunLogStop(m_isTriggeredRunLog);
 }
 //------------------------------------------------------------------
 
@@ -116,28 +190,10 @@ void CWidgetPanelMode::on_locked()
 void CWidgetPanelMode::on_unlocked()
 {
     m_modeToolBar->setEnabled(true);
-    m_runToolBar->setEnabled(true);
-}
-//------------------------------------------------------------------
-
-
-void CWidgetPanelMode::on_runLocked()
-{
-    m_modeToolBar->setEnabled(false);
-    m_actRunLog->setEnabled(false);
-    m_actRun->setIcon(QIcon(":/ico/ctrl_stop.png"));
-    disconnect(m_actRun,SIGNAL(triggered()),this,SIGNAL(triggeredRun()));
-    connect(m_actRun,SIGNAL(triggered()),this,SIGNAL(triggeredStopRun()));
-}
-//------------------------------------------------------------------
-
-
-void CWidgetPanelMode::on_runUnlocked()
-{
-    m_modeToolBar->setEnabled(true);
+    m_actRun->setEnabled(true);
     m_actRunLog->setEnabled(true);
-    m_actRun->setIcon(QIcon(":/ico/ctrl_run.png"));
-    disconnect(m_actRun,SIGNAL(triggered()),this,SIGNAL(triggeredStopRun()));
-    connect(m_actRun,SIGNAL(triggered()),this,SIGNAL(triggeredRun()));
+    on_changeRunStop(false);
+    on_changeRunLogStop(false);
+    on_resetTriggered();
 }
 //------------------------------------------------------------------

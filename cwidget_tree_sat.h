@@ -3,7 +3,6 @@
 
 #include <QWidget>
 #include <QMap>
-#include <QQueue>
 
 QT_BEGIN_NAMESPACE
 class CBoolFormula;
@@ -27,7 +26,6 @@ public:
 private:
 
     typedef QMap<QTreeWidgetItem*,CExecutObject*> TMapItemExeObject;
-    typedef QQueue<CExecutObject*> TQueExeObject;
 
     // data
     QString      *m_bfName;
@@ -47,13 +45,16 @@ private:
 private slots:
 
     void on_disabledHide(bool disabled);
-    void on_doubleClickedItem(QTreeWidgetItem*);
+    void on_returnLogSelectSat(bool isGet);
     void on_runChecked();
+    void on_runLogChecked();
+
     void on_set(const QString &bfName,CBoolFormula *bf);
 
 signals:
 
-    void execut(const QQueue<CExecutObject*> &queobj);
+    void execut(const QList<CExecutObject*> &lstObj);
+    void logSelectSat(const QString&);
 
 };
 
